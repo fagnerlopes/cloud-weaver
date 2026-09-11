@@ -12,15 +12,36 @@ Um plugin de IA que transforma agentes de código em engenheiros de infraestrutu
 
 ## Instalação
 
+O CloudWeaver se instala **dentro da pasta de um projeto**, não globalmente.
+
 ```bash
-npx skills add fagnerlopes/cloud-weaver --agent universal claude-code codex opencode -y
+mkdir meu-hermes && cd meu-hermes
+curl -fsSL https://cloudweaver.fagnerlopes.dev/install.sh | bash
 ```
 
-Após instalar, **abra uma nova sessão** do agente e digite `/start-cloud`.
+O instalador copia as skills para esta pasta (`.agents/skills`, `.claude/skills`,
+`.hermes/skills`, …) e grava um bloco em `AGENTS.md` e `CLAUDE.md` instruindo o
+agente a carregar a skill `cloud-weaver-playbook` na primeira ação da sessão.
 
-> O instalador copia cada pasta de `skills/` para o diretório de skills do agente.
-> A skill de entrada chama-se `start-cloud` (sem prefixo) justamente para que
-> `/start-cloud` seja um comando real — as demais usam o prefixo `cloud-weaver-`.
+Depois é só abrir o agente **nessa mesma pasta** e pedir em português:
+
+> Crie uma instância do Hermes Agent no Locaweb Cloud
+
+O comando `/start-cloud` também funciona, para quem prefere o menu de receitas.
+
+### Instalação manual
+
+```bash
+npx skills add fagnerlopes/cloud-weaver \
+  --agent universal claude-code codex opencode hermes-agent --skill '*' -y
+```
+
+Nesse caso, crie você mesmo o `AGENTS.md` apontando para o playbook — o CLI
+`skills` só copia as skills, não escreve arquivos de bootstrap.
+
+> **Nomenclatura:** a skill de entrada chama-se `start-cloud` (sem prefixo)
+> justamente para que `/start-cloud` seja um comando real. As demais usam o
+> prefixo `cloud-weaver-`.
 
 ## Licença
 
