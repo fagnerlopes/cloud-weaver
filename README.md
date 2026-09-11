@@ -2,13 +2,13 @@
 
 Um plugin de IA que transforma agentes de código em engenheiros de infraestrutura. Instala aplicações prontas na Locaweb Cloud por conversa interativa.
 
-## Receitas (v1)
+## Receitas
 
-| Receita | Descrição |
-|---------|-----------|
-| [Hermes Agent](skills/cloud-weaver-hermes/) | Agente WhatsApp (WAHA) + PostgreSQL |
-| [Coolify](skills/cloud-weaver-coolify/) | PaaS self-hosted |
-| [Jitsi Meet](skills/cloud-weaver-jitsi/) | Servidor de videoconferência |
+| Receita | Descrição | Status |
+|---------|-----------|--------|
+| [Hermes Agent](skills/cloud-weaver-hermes/) | Agente WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
+| Coolify | PaaS self-hosted | 🔜 em breve |
+| Jitsi Meet | Servidor de videoconferência | 🔜 em breve |
 
 ## Instalação
 
@@ -16,7 +16,11 @@ Um plugin de IA que transforma agentes de código em engenheiros de infraestrutu
 npx skills add fagnerlopes/cloud-weaver --agent universal claude-code codex opencode -y
 ```
 
-Após instalar, inicie com `/start-cloud` em qualquer sessão de agente suportado.
+Após instalar, **abra uma nova sessão** do agente e digite `/start-cloud`.
+
+> O instalador copia cada pasta de `skills/` para o diretório de skills do agente.
+> A skill de entrada chama-se `start-cloud` (sem prefixo) justamente para que
+> `/start-cloud` seja um comando real — as demais usam o prefixo `cloud-weaver-`.
 
 ## Licença
 

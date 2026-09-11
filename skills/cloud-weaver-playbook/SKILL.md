@@ -32,43 +32,39 @@ Use the Skill tool to invoke `cloud-weaver-pre-flight-check` and follow its inst
 
 ### Step 2 — Assess the request
 
-- If the user typed `/start-cloud` or asked to install something → follow the `/start-cloud` flow below.
-- If the user asked for help, operation tips (logs, restart), or status → answer in plain language. For SSH key issues, invoke `cloud-weaver-ssh-key-rotation`.
+- If the user typed `/start-cloud` or asked to install something → use the Skill tool to invoke `start-cloud` and follow it.
+- If the user asked for help, operation tips (logs, restart), or status → answer in plain language. For SSH key issues, invoke `cloud-weaver-computer-setup`, which regenerates the Ed25519 key when it is missing.
 
 ---
 
 ## `/start-cloud` Flow
 
-1. **Welcome + list recipes.** Present the catalog with a simple title and one-line description for each recipe (v1: Hermes Agent, Coolify, Jitsi Meet). Ask which one(s) they want.
+The installation flow lives in its own skill so that `/start-cloud` is a real,
+invocable entry point in every supported agent. Use the Skill tool to invoke
+`start-cloud` and follow it — do not reimplement the flow from memory.
 
-2. **Select recipes.** Allow multiple selections. Validate the selection — a recipe name only matches `[a-z0-9_]`.
-
-3. **Collect configuration interactively.** Ask exactly **one question at a time**, in plain language, validating each answer before advancing. Show progress: `Informação X de Y`. Collect only what the chosen recipe needs (port, domain, volume, admin email, etc.). Secrets are never requested in the conversation — generated with `python -c "import secrets; print(secrets.token_urlsafe(32))"` or written into a `.env` template under `REPLACE_WITH_` placeholders for the user to fill in an editor.
-
-4. **Present the plan.** Before provisioning, show a short summary of what will be created (VM + plan, ports, firewall, application) and ask for explicit confirmation. After confirmation, do not get interrupted without warning.
-
-5. **Provision + install.** Invoke `cloud-weaver-vm-setup` to create the VM, network and firewall via the Locaweb Cloud API, then the recipe skill to deploy via Docker over SSH. During execution, give plain-language status updates (`Estou criando sua máquina virtual, isso leva ~2 minutos...`).
-
-6. **Monitor startup.** Invoke `cloud-weaver-monitor` to poll the health check until HTTP 200 (default timeout 10 min), with retries and backoff. On failure, diagnose via SSH + container logs and roll back provisioned resources if needed.
-
-7. **Report.** Present the final report: access URL, generated credentials (with a reminder to change them immediately), next steps, and operation commands (view logs, restart, stop). Celebrate the milestone and invite the user to start a new session for the next unit of work.
+Summary of what that skill does: pre-flight check → recipe catalog → one
+question at a time → plan + explicit confirmation → `cloud-weaver-vm-setup` →
+recipe skill → `cloud-weaver-monitor` → final report.
 
 ---
 
 ## Skill Reference
 
-Execute skills by using the Skill tool to invoke `cloud-weaver-<skill-name>` and following the instructions.
+Execute skills by using the Skill tool to invoke them and following the instructions. Every skill is prefixed `cloud-weaver-` **except `start-cloud`**, which is unprefixed so that the user can type `/start-cloud`.
 
-| Skill | Purpose |
-|-------|---------|
-| `pre-flight-check` | Version check + environment validation (gh auth, SSH, credentials, sensitive files) |
-| `computer-setup` | Install/verify `gh`, `ssh`, `jq` and the Ed25519 SSH key |
-| `vm-setup` | Provision VM + network + firewall on the Locaweb Cloud (idempotent) |
-| `hermes` | Recipe: Hermes Agent (WAHA + PostgreSQL) |
-| `coolify` | Recipe: Coolify (PaaS self-hosted) |
-| `jitsi` | Recipe: Jitsi Meet |
-| `monitor` | Health check + polling + rollback |
-| `ssh-key-rotation` | Rotate SSH keys when requested or when the local key is missing |
+| Skill | Purpose | Status |
+|-------|---------|--------|
+| `start-cloud` | The installation flow — the entry point users type | ✅ |
+| `cloud-weaver-pre-flight-check` | Version check + environment validation (gh auth, SSH, credentials, sensitive files) | ✅ |
+| `cloud-weaver-computer-setup` | Install/verify `gh`, `ssh`, `jq` and the Ed25519 SSH key | ✅ |
+| `cloud-weaver-vm-setup` | Provision VM + network + firewall on the Locaweb Cloud (idempotent) | ✅ |
+| `cloud-weaver-hermes` | Recipe: Hermes Agent (WAHA + PostgreSQL) | ✅ |
+| `cloud-weaver-monitor` | Health check + polling + rollback | ✅ |
+| `cloud-weaver-coolify` | Recipe: Coolify (PaaS self-hosted) | 🔜 not implemented |
+| `cloud-weaver-jitsi` | Recipe: Jitsi Meet | 🔜 not implemented |
+
+**Never invoke a skill marked 🔜.** It does not exist — tell the user the recipe is not ready yet and offer the available ones.
 
 ---
 
