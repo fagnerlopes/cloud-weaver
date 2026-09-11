@@ -1,0 +1,105 @@
+---
+name: cloud-recipes-vm-setup
+description: >
+  This skill should be used when provisioning the virtual machine for a Cloud
+  Recipes deployment — after the user confirmed the plan in /start-cloud. It
+  creates (or reuses) the cloud-recipes VM on the Locaweb Cloud: isolated
+  network, SSH keypair, VM, public IP with static NAT, firewall rules and a
+  /data data disk. Idempotent — safe to re-run.
+---
+
+# VM Setup
+
+Provision the virtual machine that will host the selected recipe. Called by the
+playbook after plan confirmation, and before the recipe skill (which deploys via
+Docker over SSH).
+
+## 1. Gather deployment parameters
+
+Collect one question at a time, explain defaults in plain language:
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `env_name` | — | Regex `[a-z0-9_]` only. Prefer a short name (e.g. `hermes`, `prod`). The network is named `cr-<env>`. |
+| `zone` | `ZP01` | Use `ZP02` for geographic redundancy. |
+| `plan` | recipe-dependent | VM service offering (e.g. `c4`, `c8`) — confirm a plan that meets the recipe's minimum (see recipe skill). |
+| `disk_gb` | `20` | Data disk size in GB; mounted at `/data`. |
+| `app_ports` | recipe-dependent | TCP ports to open besides SSH 22. |
+
+Validate `env_name` with `[[ $env_name =~ ^[a-z0-9_]+$ ]]`. Reject anything else.
+
+## 2. Confirm the plan
+
+Show a short summary before provisioning, exactly like the playbook's plan
+step, and wait for explicit confirmation:
+
+> Vou criar: VM `<plan>` em `<zone>`, disco `<disk_gb>GB` (montado em /data),
+> firewall SSH (22) + portas `<app_ports>`, URL de acesso via nip.io.
+
+## 3. SSH key
+
+Reuse the dedicated key from `cloud-recipes-computer-setup`:
+
+- preview: `~/.ssh/cloud-recipes.pub`
+- other envs: `~/.ssh/cloud-recipes-<env>.pub` (create if missing, Ed25519)
+
+The public key is registered into CloudStack as a keypair so the VM accepts it.
+
+## 4. Run the provisioner
+
+The script lives at `scripts/vm-provision.py` (relative to this SKILL.md). It is
+pure Python 3 standard library and signs every request with the CloudStack
+HMAC-SHA1 scheme using `LOCAWEB_API_KEY` / `LOCAWEB_API_SECRET`. Values are
+never printed. Run it with the env vars set (they should already be present from
+the pre-flight check):
+
+```bash
+LOCAWEB_API_KEY="$LOCAWEB_API_KEY" LOCAWEB_API_SECRET="$LOCAWEB_API_SECRET" \
+python3 <this-skill-dir>/scripts/vm-provision.py \
+  --env-name "$env_name" --zone "$zone" --plan "$plan" \
+  --disk-gb "$disk_gb" --ports "$app_ports" \
+  --ssh-pubkey "$HOME/.ssh/cloud-recipes.pub"
+```
+
+The endpoint comes from `LOCAWEB_API_ENDPOINT` (or `--endpoint`). Ask the user
+for the correct CloudStack endpoint URL once and store it in
+`LOCAWEB_API_ENDPOINT`.
+
+The script prints a JSON report with `network_name`, `vm_id`, `public_ip`,
+`internal_ip`, `firewall_ports` and `hero_url`.
+
+## 5. Verify reachability
+
+Wait a reasonable time for cloud-init to finish (the VM userdata installs
+Docker and mounts `/data`), then verify SSH as `ubuntu` using the dedicated
+key:
+
+```bash
+ssh -i ~/.ssh/cloud-recipes -o StrictHostKeyChecking=accept-new \
+  -o ConnectTimeout=15 ubuntu@<public_ip> 'docker --version && df -h /data'
+```
+
+If SSH is not ready yet, retry with backoff (up to ~5 min). Keep status
+updates in plain language for the user.
+
+## 6. Report
+
+Pass to the recipe skill / monitor:
+
+- `public_ip` (public address)
+- `internal_ip`
+- `env_name`, `network_name`, `keypair_name`
+- `hero_url` (`http://<ip>.nip.io`)
+
+## Idempotency
+
+Re-running this flow (or the provisioner on a partially-provisioned
+deployment) reuses existing network, keypair, VM, IP and disk — nothing is
+duplicated. Provisioning state is safe to resume.
+
+## Bundled Resources
+
+### Scripts
+
+- **`scripts/vm-provision.py`** — Idempotent CloudStack provisioner (stdlib only, signed API)
+- **`scripts/userdata/boot_vm.sh`** — cloud-init bootstrap: Docker install, `/data` mount, fail2ban, DNS override

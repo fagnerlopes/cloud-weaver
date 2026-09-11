@@ -15,7 +15,7 @@ This is the first skill invoked at session start.
 
 ## Step 0 — Version Check
 
-<!-- CLOUD_RECIPES_VERSION: 0.2.0 -->
+<!-- CLOUD_RECIPES_VERSION: 0.3.0 -->
 
 The `CLOUD_RECIPES_VERSION` marker above contains the loaded version of the cloud-recipes skills.
 

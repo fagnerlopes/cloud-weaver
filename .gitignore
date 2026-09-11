@@ -1,0 +1,6 @@
+# Python bytecode caches from test compilation
+__pycache__/
+*.pyc
+
+# Local OS files
+.DS_Store
