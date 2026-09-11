@@ -15,10 +15,10 @@ expect() { local d="$1"; shift; if "$@" >/dev/null 2>&1; then _pass "$d"; else _
 refute() { local d="$1"; shift; if "$@" >/dev/null 2>&1; then _fail "$d"; else _pass "$d"; fi; }
 
 # file_contains <file> <fixed-string>
-file_contains() { grep -qF "$2" "$1"; }
+file_contains() { grep -qFe "$2" "$1"; }
 
 # count_eq <expected-count> <file> <fixed-string>
-count_eq() { local n; n=$(grep -cF "$3" "$2" 2>/dev/null || echo 0); [ "$n" -eq "$1" ]; }
+count_eq() { local n; n=$(grep -cFe "$3" "$2" 2>/dev/null || echo 0); [ "$n" -eq "$1" ]; }
 
 # summary <label> — print totals and return non-zero if any assertion failed
 summary() { printf '\n%s: %d passed, %d failed\n' "${1:-RESULT}" "$PASS" "$FAIL"; [ "$FAIL" -eq 0 ]; }
