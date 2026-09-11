@@ -1,9 +1,9 @@
 ---
-name: cloud-recipes-vm-setup
+name: cloud-weaver-vm-setup
 description: >
   This skill should be used when provisioning the virtual machine for a Cloud
   Recipes deployment — after the user confirmed the plan in /start-cloud. It
-  creates (or reuses) the cloud-recipes VM on the Locaweb Cloud: isolated
+  creates (or reuses) the cloud-weaver VM on the Locaweb Cloud: isolated
   network, SSH keypair, VM, public IP with static NAT, firewall rules and a
   /data data disk. Idempotent — safe to re-run.
 ---
@@ -38,10 +38,10 @@ step, and wait for explicit confirmation:
 
 ## 3. SSH key
 
-Reuse the dedicated key from `cloud-recipes-computer-setup`:
+Reuse the dedicated key from `cloud-weaver-computer-setup`:
 
-- preview: `~/.ssh/cloud-recipes.pub`
-- other envs: `~/.ssh/cloud-recipes-<env>.pub` (create if missing, Ed25519)
+- preview: `~/.ssh/cloud-weaver.pub`
+- other envs: `~/.ssh/cloud-weaver-<env>.pub` (create if missing, Ed25519)
 
 The public key is registered into CloudStack as a keypair so the VM accepts it.
 
@@ -58,7 +58,7 @@ LOCAWEB_API_KEY="$LOCAWEB_API_KEY" LOCAWEB_API_SECRET="$LOCAWEB_API_SECRET" \
 python3 <this-skill-dir>/scripts/vm-provision.py \
   --env-name "$env_name" --zone "$zone" --plan "$plan" \
   --disk-gb "$disk_gb" --ports "$app_ports" \
-  --ssh-pubkey "$HOME/.ssh/cloud-recipes.pub"
+  --ssh-pubkey "$HOME/.ssh/cloud-weaver.pub"
 ```
 
 The endpoint comes from `LOCAWEB_API_ENDPOINT` (or `--endpoint`). Ask the user
@@ -75,7 +75,7 @@ Docker and mounts `/data`), then verify SSH as `ubuntu` using the dedicated
 key:
 
 ```bash
-ssh -i ~/.ssh/cloud-recipes -o StrictHostKeyChecking=accept-new \
+ssh -i ~/.ssh/cloud-weaver -o StrictHostKeyChecking=accept-new \
   -o ConnectTimeout=15 ubuntu@<public_ip> 'docker --version && df -h /data'
 ```
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Userdata (cloud-init) bootstrap for a Cloud Recipes VM.
+# Userdata (cloud-init) bootstrap for a cloud-weaver VM.
 # Installs Docker, mounts the attached data disk at /data, hardens SSH
 # (fail2ban) and pins DNS to the CloudStack virtual router so .internal
 # hostnames resolve reliably.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deterministic, offline tests for the cloud-recipes VM provisioner. Uses the
+# Deterministic, offline tests for the cloud-weaver VM provisioner. Uses the
 # MockTransport hook (LOCAWEB_MOCK_FIXTURES/LOCAWEB_MOCK_LOG) to drive the
 # CloudStack API with fixture responses. No network, no real cloud.
 #
@@ -19,8 +19,8 @@ REPO="$(cd "$HERE/.." && pwd)"
 # shellcheck source=/dev/null
 source "$REPO/lib/assert.sh"
 
-SCRIPT="$REPO/../skills/cloud-recipes-vm-setup/scripts/vm-provision.py"
-USERDATA="$REPO/../skills/cloud-recipes-vm-setup/scripts/userdata/boot_vm.sh"
+SCRIPT="$REPO/../skills/cloud-weaver-vm-setup/scripts/vm-provision.py"
+USERDATA="$REPO/../skills/cloud-weaver-vm-setup/scripts/userdata/boot_vm.sh"
 FIXTURES="$REPO/scripts/fixtures"
 PYTHON="$(command -v python3)"
 

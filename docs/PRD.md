@@ -1,4 +1,4 @@
-# Cloud Recipes — Product Requirements Document
+# CloudWeaver — Product Requirements Document
 
 Versão: 0.1.0 (draft)
 
@@ -6,9 +6,9 @@ Versão: 0.1.0 (draft)
 
 ## 1. Visão Geral
 
-**Cloud Recipes** é um plugin de IA que transforma agentes de código em engenheiros de infraestrutura. Ele permite que usuários não-técnicos instalem e configurem aplicações prontas (Hermes Agent, Coolify, Jitsi Meet, etc.) na Locaweb Cloud por meio de uma conversa interativa.
+**CloudWeaver** é um plugin de IA que transforma agentes de código em engenheiros de infraestrutura. Ele permite que usuários não-técnicos instalem e configurem aplicações prontas (Hermes Agent, Coolify, Jitsi Meet, etc.) na Locaweb Cloud por meio de uma conversa interativa.
 
-Diferente do Cofounder — que cria aplicações Go+React do zero — o Cloud Recipes **instala aplicações prontas**: provisiona a VM, configura a rede, instala via Docker e monitora até a aplicação estar operacional.
+Diferente do Cofounder — que cria aplicações Go+React do zero — CloudWeaver **instala aplicações prontas**: provisiona a VM, configura a rede, instala via Docker e monitora até a aplicação estar operacional.
 
 ## 2. Objetivo
 
@@ -81,7 +81,7 @@ Ao final, o agente apresenta ao usuário:
 ### 5.1 Estrutura do Plugin
 
 ```
-cloud-recipes/
+cloud-weaver/
 ├── .claude-plugin/
 │   └── plugin.json              # name, description, version (fonte da verdade)
 ├── CLAUDE.md                    # Convenções de desenvolvimento do repo
@@ -89,15 +89,15 @@ cloud-recipes/
 ├── scripts/
 │   └── stamp-version.sh         # Propaga versão para o marker do pre-flight
 ├── skills/
-│   ├── cloud-recipes-playbook/  # Persona, fluxo principal, /start-cloud
-│   ├── cloud-recipes-computer-setup/  # Verifica ferramentas (gh, ssh, jq)
-│   ├── cloud-recipes-pre-flight-check/ # Validação pré-sessão + versão
-│   ├── cloud-recipes-vm-setup/  # Provisiona VM + rede + firewall
-│   ├── cloud-recipes-monitor/   # Health check + polling + rollback
-│   ├── cloud-recipes-hermes/    # Receita: Hermes Agent
-│   ├── cloud-recipes-coolify/   # Receita: Coolify
-│   ├── cloud-recipes-jitsi/     # Receita: Jitsi Meet
-│   └── cloud-recipes-ssh-key-rotation/ # Rotação de chaves SSH
+│   ├── cloud-weaver-playbook/  # Persona, fluxo principal, /start-cloud
+│   ├── cloud-weaver-computer-setup/  # Verifica ferramentas (gh, ssh, jq)
+│   ├── cloud-weaver-pre-flight-check/ # Validação pré-sessão + versão
+│   ├── cloud-weaver-vm-setup/  # Provisiona VM + rede + firewall
+│   ├── cloud-weaver-monitor/   # Health check + polling + rollback
+│   ├── cloud-weaver-hermes/    # Receita: Hermes Agent
+│   ├── cloud-weaver-coolify/   # Receita: Coolify
+│   ├── cloud-weaver-jitsi/     # Receita: Jitsi Meet
+│   └── cloud-weaver-ssh-key-rotation/ # Rotação de chaves SSH
 └── tests/
     ├── lib/
     │   └── assert.sh            # Helpers de assert compartilhados
@@ -114,7 +114,7 @@ cloud-recipes/
 ```
 /start-cloud
     ↓
-[playbook] Detecta idioma, carrega persona (tag [Cloud Recipes])
+[playbook] Detecta idioma, carrega persona (tag [CloudWeaver])
     ↓
 [pre-flight-check] Valida: gh auth, chave SSH, API keys, pastas sensíveis
     ↓
@@ -137,7 +137,7 @@ cloud-recipes/
 
 - Distribuição via `npx skills` (mesmo mecanismo do Cofounder):
   ```sh
-  npx skills add <org>/cloud-recipes --agent universal claude-code cursor codex opencode -y
+  npx skills add <org>/cloud-weaver --agent universal claude-code cursor codex opencode -y
   ```
 - Instalação **global**, disponível em todas as sessões dos agentes suportados.
 - Versão mantida em `.claude-plugin/plugin.json` e propagada via `scripts/stamp-version.sh`.
@@ -162,7 +162,7 @@ cloud-recipes/
 - `chmod 600` obrigatório.
 - Nomenclatura: `~/.ssh/<recipe-name>` (preview) e `~/.ssh/<recipe-name>-<env>` (demais ambientes).
 - Chaves reutilizadas quando já existem (idempotência).
-- Rotação disponível via `cloud-recipes-ssh-key-rotation`.
+- Rotação disponível via `cloud-weaver-ssh-key-rotation`.
 
 ### 6.4 Validação de Input
 
@@ -213,7 +213,7 @@ O plugin deve operar em:
 | **Rollback** | Falha na instalação → limpeza dos recursos provisionados |
 | **Logging** | Todas as ações do agente logadas (para debugging e auditoria) |
 | **Idioma** | Toda saída ao usuário em português brasileiro; comentários de código em inglês |
-| **Tag obrigatória** | Toda mensagem do agente começa com `[Cloud Recipes]` |
+| **Tag obrigatória** | Toda mensagem do agente começa com `[CloudWeaver]` |
 | **Determinismo** | Scripts com asserts sobre filesystem/exit codes, não sobre texto do agente |
 | **Detecção de idioma** | Responta no idioma do usuário |
 
@@ -262,7 +262,7 @@ O plugin deve operar em:
 - [ ] Nenhum secret aparece na conversa, logs ou commits.
 - [ ] Pre-flight detecta arquivos sensíveis e bloqueia o fluxo.
 - [ ] Scripts idempotentes (re-execução sem duplicação).
-- [ ] Toda saída para o usuário em PT-BR, com tag `[Cloud Recipes]`.
+- [ ] Toda saída para o usuário em PT-BR, com tag `[CloudWeaver]`.
 - [ ] Suite de testes off-line cobre preflight + scripts de receita (asserts de filesystem).
 
 ## 12. Marcos / Roadmap

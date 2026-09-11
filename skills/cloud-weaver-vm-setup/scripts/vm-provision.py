@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Idempotent single-VM provisioning on Locaweb Cloud via the CloudStack API.
 
-Creates (or reuses) the resources a Cloud Recipes deployment needs:
+Creates (or reuses) the resources a cloud-weaver deployment needs:
 - isolated network ("Default Guest Network")
 - SSH keypair (registers the given local Ed25519 public key)
 - one VM from the Ubuntu 24 template, with cloud-init userdata
@@ -19,7 +19,7 @@ what is already provisioned.
 Usage:
     LOCAWEB_API_KEY=... LOCAWEB_API_SECRET=... python3 vm-provision.py \
         --env-name myenv --plan c4 --ports 3000,8080 \
-        --ssh-pubkey ~/.ssh/cloud-recipes.pub
+        --ssh-pubkey ~/.ssh/cloud-weaver.pub
 
 Offline testing: set LOCAWEB_MOCK_FIXTURES=<json> and LOCAWEB_MOCK_LOG=<file>
 to drive the API with fixture responses instead of the real endpoint.
@@ -426,7 +426,7 @@ def ensure_data_disk(client, disk_name, zone_id, disk_gb, vm_id, network_name):
                            zoneid=zone_id, size=disk_gb)
         vol_id = data["id"]
         client.call("createTags", resourceids=vol_id, resourcetype="Volume",
-                    **{"tags[0].key": "cloud-recipes-id",
+                    **{"tags[0].key": "cloud-weaver-id",
                        "tags[0].value": network_name})
     if not vol or not vol.get("virtualmachineid"):
         client.call("attachVolume", id=vol_id, virtualmachineid=vm_id)
@@ -515,7 +515,7 @@ def main():
                              "SSH 22 is always open")
     parser.add_argument("--ssh-pubkey",
                         help="Path to the Ed25519 public key (default: "
-                             "~/.ssh/cloud-recipes-<env>.pub or ~/.ssh/cloud-recipes.pub)")
+                             "~/.ssh/cloud-weaver-<env>.pub or ~/.ssh/cloud-weaver.pub)")
     parser.add_argument("--endpoint", help="CloudStack API endpoint URL "
                                            "(default: LOCAWEB_API_ENDPOINT)")
     parser.add_argument("--output", help="Write JSON output to a file")

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Minimal assertion helpers shared by cloud-recipes tests.
+# Minimal assertion helpers shared by cloud-weaver tests.
 # Source this, then use expect/refute. Track PASS/FAIL and exit via summary.
 
 PASS=0

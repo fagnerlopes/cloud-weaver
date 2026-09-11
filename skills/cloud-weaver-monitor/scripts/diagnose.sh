@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Collects baseline SSH diagnostics from a Cloud Recipes VM — container state,
+# Collects baseline SSH diagnostics from a cloud-weaver VM — container state,
 # disk, memory, docker daemon log and uptime. Best-effort: never fails the
 # session, output goes to stdout and (optionally) a report file.
 #

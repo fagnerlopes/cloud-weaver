@@ -1,5 +1,5 @@
 {
-  "name": "cloud-recipes",
+  "name": "cloud-weaver",
   "description": "Um assistente que instala aplicações prontas (Hermes Agent, Coolify, Jitsi Meet) na Locaweb Cloud por conversa.",
-  "version": "0.5.0"
+  "version": "0.6.0"
 }

@@ -1,4 +1,4 @@
-# Cloud Recipes
+# CloudWeaver
 
 Um plugin de IA que transforma agentes de código em engenheiros de infraestrutura. Instala aplicações prontas na Locaweb Cloud por conversa interativa.
 
@@ -6,14 +6,14 @@ Um plugin de IA que transforma agentes de código em engenheiros de infraestrutu
 
 | Receita | Descrição |
 |---------|-----------|
-| [Hermes Agent](skills/cloud-recipes-hermes/) | Agente WhatsApp (WAHA) + PostgreSQL |
-| [Coolify](skills/cloud-recipes-coolify/) | PaaS self-hosted |
-| [Jitsi Meet](skills/cloud-recipes-jitsi/) | Servidor de videoconferência |
+| [Hermes Agent](skills/cloud-weaver-hermes/) | Agente WhatsApp (WAHA) + PostgreSQL |
+| [Coolify](skills/cloud-weaver-coolify/) | PaaS self-hosted |
+| [Jitsi Meet](skills/cloud-weaver-jitsi/) | Servidor de videoconferência |
 
 ## Instalação
 
 ```bash
-npx skills add fagnerlopes/cloud-recipes --agent universal claude-code codex opencode -y
+npx skills add fagnerlopes/cloud-weaver --agent universal claude-code codex opencode -y
 ```
 
 Após instalar, inicie com `/start-cloud` em qualquer sessão de agente suportado.

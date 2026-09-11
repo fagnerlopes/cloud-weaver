@@ -1,12 +1,12 @@
-# MEMORY — Cloud Recipes
+# MEMORY — CloudWeaver
 
 Estado do projeto salvo para a próxima sessão. Leia este arquivo antes de qualquer trabalho.
 
 ## Contexto do Projeto
 
-**Cloud Recipes** é um plugin de IA que instala aplicações prontas (Hermes Agent, Coolify, Jitsi Meet, etc.) na Locaweb Cloud por meio de conversa interativa. Ele é inspirado no **Cofounder** da Locaweb (repositório: `/home/fagner.lopes@king.local/workspaces/workspace-locaweb/repositories/cofounder`), mas com escopo diferente:
+**CloudWeaver** é um plugin de IA que instala aplicações prontas (Hermes Agent, Coolify, Jitsi Meet, etc.) na Locaweb Cloud por meio de conversa interativa. Ele é inspirado no **Cofounder** da Locaweb (repositório: `/home/fagner.lopes@king.local/workspaces/workspace-locaweb/repositories/cofounder`), mas com escopo diferente:
 
-| | Cofounder | Cloud Recipes |
+| | Cofounder | CloudWeaver |
 |---|---|---|
 | Escopo | Cria apps Go+React do zero | Instala apps prontos |
 | Instalação | Por projeto | **Global** |
@@ -26,7 +26,7 @@ Estado do projeto salvo para a próxima sessão. Leia este arquivo antes de qual
 ## Artefatos Criados
 
 - `docs/PRD.md` — PRD completo (v0.1.0 draft) com arquitetura, fluxo, segurança, roadmap e critérios de aceite.
-- `README.md` — placeholder (# Cloud Recipes), precisa ser preenchido.
+- `README.md` — placeholder (# cloud-weaver), precisa ser preenchido.
 
 ## Roadmap (próximos passos)
 
@@ -43,22 +43,22 @@ Estado do projeto salvo para a próxima sessão. Leia este arquivo antes de qual
 ## Estrutura-Alvo do Repositório
 
 ```
-cloud-recipes/
+cloud-weaver/
 ├── .claude-plugin/plugin.json          # name, description, version (fonte da verdade)
 ├── CLAUDE.md                           # Convenções de dev do repo
 ├── README.md                           # Preencher
 ├── docs/PRD.md                         # OK
 ├── scripts/stamp-version.sh            # Propaga versão → pre-flight marker
 ├── skills/
-│   ├── cloud-recipes-playbook/         # Persona + fluxo + /start-cloud
-│   ├── cloud-recipes-computer-setup/   # Verifica ferramentas (gh, ssh, jq)
-│   ├── cloud-recipes-pre-flight-check/ # Validação pré-sessão + versão
-│   ├── cloud-recipes-vm-setup/         # VM + rede + firewall via Locaweb Cloud
-│   ├── cloud-recipes-monitor/          # Health check + polling + rollback
-│   ├── cloud-recipes-hermes/           # Receita Hermes Agent
-│   ├── cloud-recipes-coolify/          # Receita Coolify
-│   ├── cloud-recipes-jitsi/            # Receita Jitsi Meet
-│   └── cloud-recipes-ssh-key-rotation/ # Rotação de chaves SSH
+│   ├── cloud-weaver-playbook/         # Persona + fluxo + /start-cloud
+│   ├── cloud-weaver-computer-setup/   # Verifica ferramentas (gh, ssh, jq)
+│   ├── cloud-weaver-pre-flight-check/ # Validação pré-sessão + versão
+│   ├── cloud-weaver-vm-setup/         # VM + rede + firewall via Locaweb Cloud
+│   ├── cloud-weaver-monitor/          # Health check + polling + rollback
+│   ├── cloud-weaver-hermes/           # Receita Hermes Agent
+│   ├── cloud-weaver-coolify/          # Receita Coolify
+│   ├── cloud-weaver-jitsi/            # Receita Jitsi Meet
+│   └── cloud-weaver-ssh-key-rotation/ # Rotação de chaves SSH
 └── tests/
     ├── lib/assert.sh                   # Asserts compartilhados (copiar padrão do Cofounder)
     ├── scripts/test-scripts.sh         # Testes offline (preflight + scripts de receita)
@@ -69,7 +69,7 @@ cloud-recipes/
 
 Ao implementar, consultar sempre:
 
-- **Playbook:** `cofounder-playbook/SKILL.md` — persona, sessão start, skill reference, regras (tag obrigatória `[Cofounder]` → aqui `[Cloud Recipes]`, detectar idioma, docs em PT-BR).
+- **Playbook:** `cofounder-playbook/SKILL.md` — persona, sessão start, skill reference, regras (tag obrigatória `[Cofounder]` → aqui `[CloudWeaver]`, detectar idioma, docs em PT-BR).
 - **Pre-flight:** `cofounder-pre-flight-check/SKILL.md` + `scripts/preflight.sh` — guard de arquivos sensíveis (`.env`, `.npmrc`, `.netrc`, `.pem`, `.key`, `credentials*.json`, `secrets.yaml`, chaves), git sync, check de ferramentas, `NEEDS_*` flags, marker de versão via HTML comment.
 - **Security:** secrets gerados com `python -c "import secrets; print(secrets.token_urlsafe(32))"`; secrets do usuário via editor com placeholders `REPLACE_WITH_`; nunca na conversa.
 - **VM setup:** aplicar o mesmo fluxo de provisionamento da `locaweb-cloud-provision` (env_name, zone ZP01/ZP02, web_plan, disk 20GB em `/data/`), hero URLs via `nip.io`.
@@ -100,7 +100,7 @@ Instalar plugin globalmente (npx skills add)
 ## Próxima Sessão: Começar por M0
 
 1. Inicializar estrutura do repo (pasta `skills/`, `tests/`, `scripts/`, `.claude-plugin/`).
-2. Criar `.claude-plugin/plugin.json` com `name: "cloud-recipes"` e versão inicial `0.1.0`.
+2. Criar `.claude-plugin/plugin.json` com `name: "cloud-weaver"` e versão inicial `0.1.0`.
 3. Criar `CLAUDE.md` (convenções: bump de versão no plugin.json, rodar stamp-version.sh, commit de settings).
 4. Criar `scripts/stamp-version.sh` (copiar padrão do Cofounder, ajustando nomes).
 5. Preencher `README.md`.
@@ -109,6 +109,6 @@ Instalar plugin globalmente (npx skills add)
 ## Notas
 
 - Toda saída ao usuário em **PT-BR**; comentários de código em inglês.
-- Toda mensagem do agente começa com a tag **`[Cloud Recipes]`**.
+- Toda mensagem do agente começa com a tag **`[CloudWeaver]`**.
 - Perguntar antes de novas decisões de escopo; não assumir mudanças de M0-M6.
 - Fonte de referência do Cofounder pode evoluir — verificar versão atual antes de copiar padrões.

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Deterministic, offline tests for the cloud-recipes shell scripts, driven in
+# Deterministic, offline tests for the cloud-weaver shell scripts, driven in
 # throwaway temp dirs on the host. No container, no network, no agent.
 #
 #   - preflight.sh : sensitive-file guard (block + template exemptions), git
 #                    sync with a local bare remote, tool detection, gh auth
 #                    check, locaweb credentials presence check.
-#   - version marker: skills/cloud-recipes-pre-flight-check/SKILL.md carries a
-#                    CLOUD_RECIPES_VERSION marker matching .claude-plugin/plugin.json.
+#   - version marker: skills/cloud-weaver-pre-flight-check/SKILL.md carries a
+#                    cloud-weaver marker matching .claude-plugin/plugin.json.
 #
 # Usage: tests/scripts/test-scripts.sh
 set -uo pipefail
@@ -17,7 +17,7 @@ REPO="$(cd "$HERE/.." && pwd)"
 # shellcheck source=/dev/null
 source "$REPO/lib/assert.sh"
 
-PREFLIGHT="$REPO/../skills/cloud-recipes-pre-flight-check/scripts/preflight.sh"
+PREFLIGHT="$REPO/../skills/cloud-weaver-pre-flight-check/scripts/preflight.sh"
 BASH_BIN="$(command -v bash)"
 
 # Deterministic git identity so commits work without host config.
@@ -50,9 +50,9 @@ mkrepo() {
 
 echo "== preflight: version marker matches plugin.json =="
 PLUGIN_VERSION=$(jq -r .version "$REPO/../.claude-plugin/plugin.json")
-SKILL="$REPO/../skills/cloud-recipes-pre-flight-check/SKILL.md"
-expect "marker present"         file_contains "$SKILL" "CLOUD_RECIPES_VERSION"
-expect "marker == plugin.json"  bash -c "grep -qF 'CLOUD_RECIPES_VERSION: $PLUGIN_VERSION -->' '$SKILL'"
+SKILL="$REPO/../skills/cloud-weaver-pre-flight-check/SKILL.md"
+expect "marker present"         file_contains "$SKILL" "CLOUD_WEAVER_VERSION"
+expect "marker == plugin.json"  bash -c "grep -qF 'CLOUD_WEAVER_VERSION: $PLUGIN_VERSION -->' '$SKILL'"
 
 echo "== preflight: sensitive file guard — untracked secrets block the sync =="
 d="$BASE/s1"; mkrepo "$d"

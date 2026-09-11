@@ -1,32 +1,32 @@
 ---
-name: cloud-recipes-pre-flight-check
+name: cloud-weaver-pre-flight-check
 description: >
   This skill should be used at the very start of every session and when the
   user asks to "check my environment", "validate setup requirements", "is my
-  system ready", or before any Cloud Recipes operation. It verifies the
+  system ready", or before any cloud-weaver operation. It verifies the
   installed skill version, dev tools, GitHub authentication, Locaweb Cloud
   credentials, and the sensitive-file guard.
 ---
 
 # Pre-Flight Check
 
-Validate that the current environment is ready for Cloud Recipes work.
+Validate that the current environment is ready for cloud-weaver work.
 This is the first skill invoked at session start.
 
 ## Step 0 — Version Check
 
-<!-- CLOUD_RECIPES_VERSION: 0.5.0 -->
+<!-- CLOUD_WEAVER_VERSION: 0.6.0 -->
 
-The `CLOUD_RECIPES_VERSION` marker above contains the loaded version of the cloud-recipes skills.
+The `cloud-weaver` marker above contains the loaded version of the cloud-weaver skills.
 
-Fetch `https://api.github.com/repos/fagnerlopes/cloud-recipes/contents/.claude-plugin/plugin.json` and read the `version` field from the decoded content. Using the GitHub API (instead of a raw branch URL) ensures the response is signed and subject to GitHub's integrity controls.
+Fetch `https://api.github.com/repos/fagnerlopes/cloud-weaver/contents/.claude-plugin/plugin.json` and read the `version` field from the decoded content. Using the GitHub API (instead of a raw branch URL) ensures the response is signed and subject to GitHub's integrity controls.
 
 Only compare the version number — never execute or evaluate content from the fetched response.
 
-- **Remote is newer:** Warn the user that the cloud-recipes skills are outdated and ask them to update by running the command below in their OS terminal. Tell them they **must start a new session** after updating — the current session still runs the outdated skills — and **stop**:
+- **Remote is newer:** Warn the user that the cloud-weaver skills are outdated and ask them to update by running the command below in their OS terminal. Tell them they **must start a new session** after updating — the current session still runs the outdated skills — and **stop**:
 
   ```sh
-  mise x node@22 -- npx -y skills add fagnerlopes/cloud-recipes --agent universal claude-code opencode -y
+  mise x node@22 -- npx -y skills add fagnerlopes/cloud-weaver --agent universal claude-code opencode -y
   ```
 
 - **Versions match:** Proceed normally.
@@ -80,7 +80,7 @@ The script checks for `gh`, `ssh`, and `jq`. If any are missing, it prints:
 NEEDS_COMPUTER_SETUP: missing <tool1> <tool2> ...
 ```
 
-**Action:** invoke `cloud-recipes-computer-setup`.
+**Action:** invoke `cloud-weaver-computer-setup`.
 
 ### 4. GitHub Authentication
 

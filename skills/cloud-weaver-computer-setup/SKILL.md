@@ -1,15 +1,15 @@
 ---
-name: cloud-recipes-computer-setup
+name: cloud-weaver-computer-setup
 description: >
   This skill should be used when the user asks to "set up my computer",
   "install dev tools", "set up my environment", or when the pre-flight check
   reports NEEDS_COMPUTER_SETUP or a missing SSH key. It verifies gh, ssh, and
-  jq, and ensures a dedicated Ed25519 SSH key exists for cloud recipes.
+  jq, and ensures a dedicated Ed25519 SSH key exists for CloudWeaver.
 ---
 
 # Computer Setup
 
-**This is a sanity check, not a full install path.** Cloud Recipes only needs
+**This is a sanity check, not a full install path.** cloud-weaver only needs
 `gh`, the OpenSSH client, and `jq`. This skill verifies they are present and
 creates/verifies the dedicated Ed25519 SSH key used to reach the provisioned
 VMs. Idempotent — safe to re-run.
@@ -42,17 +42,17 @@ terminal and return to the session.
 
 ## 3. Dedicated Ed25519 SSH key
 
-Use the same key for all Cloud Recipes VMs — the key is provisioned into each
+Use the same key for all cloud-weaver VMs — the key is provisioned into each
 new VM. Naming follows the recipe convention:
 
-- preview: `~/.ssh/cloud-recipes`
-- other envs: `~/.ssh/cloud-recipes-<env>`
+- preview: `~/.ssh/cloud-weaver`
+- other envs: `~/.ssh/cloud-weaver-<env>`
 
 Create it if missing (never overwrite an existing key):
 
 ```bash
-SSHKEY="$HOME/.ssh/cloud-recipes"
-[[ -f "$SSHKEY" ]] || ssh-keygen -t ed25519 -N "" -f "$SSHKEY" -C "cloud-recipes"
+SSHKEY="$HOME/.ssh/cloud-weaver"
+[[ -f "$SSHKEY" ]] || ssh-keygen -t ed25519 -N "" -f "$SSHKEY" -C "cloud-weaver"
 chmod 600 "$SSHKEY"
 ```
 
@@ -64,10 +64,10 @@ ssh-keygen -y -f "$SSHKEY" >/dev/null && echo OK
 
 ## 4. Re-run the pre-flight
 
-After setup, re-run `cloud-recipes-pre-flight-check` to confirm the
+After setup, re-run `cloud-weaver-pre-flight-check` to confirm the
 environment is ready before proceeding.
 
 ## Bundled Resources
 
 This skill has no bundled scripts — all steps run inline. The require and
-verify of the SSH key also lives in `cloud-recipes-vm-setup`.
+verify of the SSH key also lives in `cloud-weaver-vm-setup`.

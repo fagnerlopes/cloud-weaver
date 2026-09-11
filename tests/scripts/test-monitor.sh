@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deterministic, offline tests for the cloud-recipes monitor — the health
+# Deterministic, offline tests for the cloud-weaver monitor — the health
 # poller and the SSH diagnostics collector. No network is touched: the
 # poller's core is exercised with stubbed requester/sleep/clock, and
 # diagnose.sh runs in --dry-run mode.
@@ -19,8 +19,8 @@ REPO="$(cd "$HERE/.." && pwd)"
 # shellcheck source=/dev/null
 source "$REPO/lib/assert.sh"
 
-SCRIPT="$REPO/../skills/cloud-recipes-monitor/scripts/health-check.py"
-DIAG="$REPO/../skills/cloud-recipes-monitor/scripts/diagnose.sh"
+SCRIPT="$REPO/../skills/cloud-weaver-monitor/scripts/health-check.py"
+DIAG="$REPO/../skills/cloud-weaver-monitor/scripts/diagnose.sh"
 PYTHON="$(command -v python3)"
 
 BASE="$(mktemp -d)"

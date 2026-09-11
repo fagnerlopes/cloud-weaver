@@ -19,9 +19,9 @@ REPO="$(cd "$HERE/.." && pwd)"
 # shellcheck source=/dev/null
 source "$REPO/lib/assert.sh"
 
-SCRIPT="$REPO/../skills/cloud-recipes-hermes/scripts/deploy-hermes.py"
-COMPOSE="$REPO/../skills/cloud-recipes-hermes/scripts/compose/compose.yaml"
-INITDB="$REPO/../skills/cloud-recipes-hermes/scripts/initdb.sql"
+SCRIPT="$REPO/../skills/cloud-weaver-hermes/scripts/deploy-hermes.py"
+COMPOSE="$REPO/../skills/cloud-weaver-hermes/scripts/compose/compose.yaml"
+INITDB="$REPO/../skills/cloud-weaver-hermes/scripts/initdb.sql"
 PYTHON="$(command -v python3)"
 
 BASE="$(mktemp -d)"

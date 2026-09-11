@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Health check poller for Cloud Recipes deployments.
+"""Health check poller for cloud-weaver deployments.
 
 Polls a URL until it returns HTTP 200, with exponential backoff, a total
 timeout and an initial grace delay (let cloud-init / docker compose boot).

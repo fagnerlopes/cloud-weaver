@@ -1,9 +1,9 @@
 ---
-name: cloud-recipes-hermes
+name: cloud-weaver-hermes
 description: >
   This skill should be used when deploying the Hermes Agent recipe — the WAHA
-  (WhatsApp HTTP API) service backed by PostgreSQL — onto a Cloud Recipes VM
-  that is already provisioned (see cloud-recipes-vm-setup). It collects the
+  (WhatsApp HTTP API) service backed by PostgreSQL — onto a cloud-weaver VM
+  that is already provisioned (see cloud-weaver-vm-setup). It collects the
   remaining configuration one question at a time, then ships a docker compose
   stack over SSH and starts it. Idempotent — re-runs reuse the remote .env.
 ---
@@ -16,7 +16,7 @@ attached disk under `/data/<env>/`.
 
 ## 1. Gather configuration
 
-Prefer reusing the previous VM already created by `cloud-recipes-vm-setup`
+Prefer reusing the previous VM already created by `cloud-weaver-vm-setup`
 (`env_name`, `public_ip`, `ssh` key). Ask exactly one question at a time:
 
 | Parameter | Default | Notes |
@@ -40,14 +40,14 @@ Wait for explicit confirmation.
 
 The deploy script lives at `scripts/deploy-hermes.py` (relative to this
 SKILL.md). Pure Python 3 stdlib. The SSH key is the dedicated
-`~/.ssh/cloud-recipes` (or `~/.ssh/cloud-recipes-<env>`) from
-`cloud-recipes-computer-setup`; SSH user is `ubuntu`.
+`~/.ssh/cloud-weaver` (or `~/.ssh/cloud-weaver-<env>`) from
+`cloud-weaver-computer-setup`; SSH user is `ubuntu`.
 
 ```bash
 python3 <this-skill-dir>/scripts/deploy-hermes.py \
   --env-name "$env_name" \
   --public-ip "$public_ip" \
-  --ssh-private-key "$HOME/.ssh/cloud-recipes" \
+  --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --api-port "$api_port"
 ```
 
@@ -57,7 +57,7 @@ so the existing `.env` on the VM is reused and credentials are never rotated:
 ```bash
 python3 <this-skill-dir>/scripts/deploy-hermes.py \
   --env-name "$env_name" --public-ip "$public_ip" \
-  --ssh-private-key "$HOME/.ssh/cloud-recipes" --skip-secrets
+  --ssh-private-key "$HOME/.ssh/cloud-weaver" --skip-secrets
 ```
 
 There is a `--dry-run` flag that prints every SSH/SCP/docker command without
@@ -87,7 +87,7 @@ Credentials are generated and live only in the VM file
 `/data/<env>/compose/.env` (600). Tell the user they can view them with:
 
 ```bash
-ssh -i ~/.ssh/cloud-recipes ubuntu@<public_ip> sudo cat /data/<env>/compose/.env
+ssh -i ~/.ssh/cloud-weaver ubuntu@<public_ip> sudo cat /data/<env>/compose/.env
 ```
 
 Remind them to change `WAHA_DASHBOARD_PASSWORD` and `WAHA_API_KEY` from
@@ -104,7 +104,7 @@ and still applies config/volume changes.
 
 - **WAHA** runs as root by design (no `USER` in the upstream image); its
   session dir `/data/<env>/waha` is root-owned on the host. Host-side
-  maintenance uses `sudo`, matching every other Cloud Recipes step.
+  maintenance uses `sudo`, matching every other cloud-weaver step.
 - **PostgreSQL** runs as uid 999; `/data/<env>/pgdata` is `chown -R 999:999`
   before first boot.
 - All dirs live under `/data/` (attached, snapshot-backed disk) — never mount

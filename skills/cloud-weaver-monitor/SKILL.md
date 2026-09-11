@@ -1,8 +1,8 @@
 ---
-name: cloud-recipes-monitor
+name: cloud-weaver-monitor
 description: >
   This skill should be used after a recipe has been deployed (see
-  cloud-recipes-vm-setup + the recipe skill) to confirm the application is
+  cloud-weaver-vm-setup + the recipe skill) to confirm the application is
   actually up and to help diagnose it when it is not. It polls the app's
   health endpoint until HTTP 200 with retries and backoff, and on failure
   collects SSH diagnostics from the VM.
@@ -51,7 +51,7 @@ you can reason about the failure instead of guessing:
 
 ```bash
 bash <this-skill-dir>/scripts/diagnose.sh \
-  --ssh-key "$HOME/.ssh/cloud-recipes" --ip "$public_ip"
+  --ssh-key "$HOME/.ssh/cloud-weaver" --ip "$public_ip"
 ```
 
 This gathers: `docker ps`, `/data` disk usage, memory, the docker daemon log
@@ -63,7 +63,7 @@ and uptime. Read the output and reason out loud:
 - Disk/memory pressure → the plan may be too small; consider a larger VM plan.
 - Docker daemon down → `systemctl status docker` on the VM.
 
-Use the same SSH pattern (dedicated key `~/.ssh/cloud-recipes`, user
+Use the same SSH pattern (dedicated key `~/.ssh/cloud-weaver`, user
 `ubuntu`, `-o StrictHostKeyChecking=accept-new`) for any follow-up commands.
 Report findings to the user in plain PT-BR and recommend the next action.
 
