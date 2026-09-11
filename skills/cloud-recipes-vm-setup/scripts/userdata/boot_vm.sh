@@ -11,7 +11,7 @@ sed -i 's|br\.archive\.ubuntu\.com|archive.ubuntu.com|g' /etc/apt/sources.list.d
 
 # --- fail2ban: block SSH brute-force attempts ---
 apt-get update -qq
-apt-get install -y -qq fail2ban jq
+apt-get install -y -qq fail2ban jq curl
 cat > /etc/fail2ban/jail.local << 'F2BEOF'
 [DEFAULT]
 bantime = 3600
