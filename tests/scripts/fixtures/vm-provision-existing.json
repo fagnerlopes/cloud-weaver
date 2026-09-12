@@ -18,5 +18,8 @@
   "createVolume": {"createvolumeresponse": {"id": "vol1"}},
   "createTags": {"createtagsresponse": {"success": true}},
   "attachVolume": {"attachvolumeresponse": {"id": "vol1"}},
-  "listVolumes": {"listvolumesresponse": {"count": 1, "volume": [{"id": "vol1", "name": "cr-hermes-data", "virtualmachineid": "vm1", "state": "Ready"}]}}
+  "listVolumes": {"listvolumesresponse": {"count": 1, "volume": [{"id": "vol1", "name": "cr-hermes-data", "virtualmachineid": "vm1", "state": "Ready"}]}},
+  "stopVirtualMachine": {"stopvirtualmachineresponse": {"jobid": "job-stop", "jobstatus": 0}},
+  "startVirtualMachine": {"startvirtualmachineresponse": {"jobid": "job-start", "jobstatus": 0}},
+  "resetSSHKeyForVirtualMachine": {"resetsshkeyforvirtualmachineresponse": {}}
 }

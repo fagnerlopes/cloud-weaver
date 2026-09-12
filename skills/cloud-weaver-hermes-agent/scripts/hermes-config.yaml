@@ -1,0 +1,6 @@
+# Hermes Agent approval configuration
+# Written to /root/.hermes/config.yaml before first boot.
+# Q2: cron_mode value to confirm during smoke test on real VM.
+approvals:
+  mode: smart
+  cron_mode: auto

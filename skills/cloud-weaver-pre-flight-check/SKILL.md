@@ -15,7 +15,7 @@ This is the first skill invoked at session start.
 
 ## Step 0 — Version Check
 
-<!-- CLOUD_WEAVER_VERSION: 0.7.1 -->
+<!-- CLOUD_WEAVER_VERSION: 0.8.0 -->
 
 The `cloud-weaver` marker above contains the loaded version of the cloud-weaver skills.
 

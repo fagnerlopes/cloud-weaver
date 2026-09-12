@@ -115,4 +115,21 @@ expect "mounts /data"                  file_contains "$USERDATA" '/data'
 expect "formats ext4 data disk"        file_contains "$USERDATA" "mkfs.ext4"
 expect "enable fail2ban"               file_contains "$USERDATA" "fail2ban"
 
+echo "== vm-provision: rotate-ssh-key subcommand =="
+prov rot1 vm-provision-existing.json \
+  rotate-ssh-key --env-name hermes --ssh-pubkey "$BASE/testkey.pub"
+expect "rotate exit 0"                          test "$(prov_rc rot1)" = 0
+expect "rotate ran stopVirtualMachine"          file_contains "$BASE/rot1.log" "stopVirtualMachine"
+expect "rotate ran resetSSHKeyForVirtualMachine" file_contains "$BASE/rot1.log" "resetSSHKeyForVirtualMachine"
+expect "rotate ran startVirtualMachine"         file_contains "$BASE/rot1.log" "startVirtualMachine"
+expect "rotate output has status rotated"       file_contains "$BASE/rot1.out" "rotated"
+expect "rotate did NOT run deployVirtualMachine" refute test "$(grep -c deployVirtualMachine "$BASE/rot1.log" 2>/dev/null || echo 0)" -gt 0
+expect "rotate did NOT run createNetwork"        refute test "$(grep -c createNetwork "$BASE/rot1.log" 2>/dev/null || echo 0)" -gt 0
+# registerSSHKeyPair must appear (new key actually registered, not skipped)
+expect "rotate: new key registered"              file_contains "$BASE/rot1.log" "registerSSHKeyPair"
+# New keypair name must match the pattern cr-<env>-key-<timestamp>
+expect "rotate: unique keypair name"             file_contains "$BASE/rot1.out" "cr-hermes-key-"
+# The new keypair name must be DIFFERENT from the old one (cr-hermes-key exact)
+refute "rotate: old keypair NOT reused"          grep -qF '"new_keypair_name": "cr-hermes-key"' "$BASE/rot1.out"
+
 summary "vm-provision"
