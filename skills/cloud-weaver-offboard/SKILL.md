@@ -11,6 +11,10 @@ description: >
 
 # CloudWeaver Offboard — desligamento pós-workshop
 
+> **Nota v2:** Para destruir os recursos na Locaweb Cloud (VM, rede, IP), use
+> o workflow de teardown: `gh workflow run teardown.yml --repo <user>/<repo>`.
+> Este guia cobre o offboard de credenciais na máquina do evento.
+
 ## Contexto
 
 Três segredos ficaram na máquina do evento. Cada um tem um desligamento remoto

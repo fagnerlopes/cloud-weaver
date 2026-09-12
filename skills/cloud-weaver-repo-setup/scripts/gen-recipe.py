@@ -22,7 +22,13 @@ _FILE_MAP = {
     "config-deploy-preview.yml": "config/deploy.preview.yml",
     "kamal-secrets-common": ".kamal/secrets-common",
     "kamal-secrets-preview": ".kamal/secrets.preview",
+    "teardown.yml": ".github/workflows/teardown.yml",
 }
+
+# Shared files (same for all recipes) — read from templates/shared/
+_SHARED_FILES = [
+    "teardown.py",
+]
 
 _KNOWN_RECIPES = {"hermes-agent", "waha"}
 
@@ -92,6 +98,14 @@ def generate(recipe: str, ctx: dict, output_dir: Path, template_root: Path) -> N
                 file=sys.stderr,
             )
             sys.exit(1)
+
+    # Copy shared files (verbatim, no substitution).
+    shared_dir = template_root / "shared"
+    for filename in _SHARED_FILES:
+        src = shared_dir / filename
+        if src.is_file():
+            dst = output_dir / filename
+            dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
 
 def parse_args(argv: list | None = None) -> argparse.Namespace:

@@ -194,6 +194,7 @@ Present in PT-BR:
   - Para reprovisionar manualmente: `gh workflow run deploy.yml --repo <user>/<repo-name>`
   - Para ver logs: `gh run list --repo <user>/<repo-name>`
   - Acesso SSH: `ssh -i ~/.ssh/cw-<repo-name> ubuntu@<public-ip>`
+  - Para remover os recursos e parar a cobrança: diga "quero fazer o teardown" em uma nova sessão
 
 Delete the session file after the report:
 ```bash
