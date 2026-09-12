@@ -55,23 +55,25 @@ was needed, give a short friendly status update as each item resolves.
 
 ## Step 2 — Present the recipe catalog
 
-Show the catalog with a one-line description each. **Only recipes marked
-available may be selected** — an unavailable one is shown so the user knows it
-is coming, never offered as a choice.
+Present the catalog as a **numbered list** so the user can reply with the number
+or the name. **Only recipes marked available may be selected** — show unavailable
+ones so the user knows they are coming, but never offer them as a choice.
 
-| Recipe | ID | Description | Status |
-|--------|----|-------------|--------|
-| WAHA | `waha` | Agente de WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
-| Hermes Agent | `hermes-agent` | Agente Telegram + LLM (Nous Research) | ✅ disponível |
-| Coolify | `coolify` | PaaS self-hosted para publicar suas próprias apps | 🔜 em breve |
-| Jitsi Meet | `jitsi` | Servidor de videoconferência | 🔜 em breve |
+```
+Qual receita você quer instalar?
+
+1. WAHA — Agente de WhatsApp (WAHA) + PostgreSQL
+2. Hermes Agent — Agente Telegram + LLM (Nous Research)
+
+🔜 Em breve: Coolify, Jitsi Meet
+```
 
 Ask which recipe they want. Rules:
 
-- A recipe ID must match `^[a-z0-9-]+$`. Reject anything else.
-- The ID must be one of the **available** recipes listed above. If the user
-  picks an unavailable one, say plainly it is not ready yet and offer the
-  available ones.
+- Accept the number (1, 2) or the name (waha, hermes-agent). Map to the recipe
+  ID internally: `1` → `waha`, `2` → `hermes-agent`.
+- If the user picks an unavailable recipe, say plainly it is not ready yet and
+  offer the available ones.
 - More than one recipe may be selected. Handle them one at a time,
   sequentially — never interleave.
 
