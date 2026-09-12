@@ -83,6 +83,51 @@ Ask which recipe they want. Rules:
 
 ## Step 3 — Collect configuration, one question at a time
 
+### 3.0 — Session file (resume support)
+
+Before asking the first question, check for an existing session file:
+
+```bash
+SESSION_FILE="$HOME/.cloud-weaver-${recipe_id}-session.json"
+test -f "$SESSION_FILE" && cat "$SESSION_FILE"
+```
+
+If the file exists, read it and show the user what was already collected:
+
+> Encontrei uma sessão anterior para esta receita com os seguintes valores já preenchidos:
+> - `param`: valor
+> - …
+>
+> Deseja continuar de onde parou, ou começar do zero?
+
+- **Continuar:** skip questions whose answers are already in the file; resume from the first unanswered parameter.
+- **Começar do zero:** delete the session file (`rm "$SESSION_FILE"`) and proceed normally.
+
+**After each question is answered and validated**, persist the full current state to the session file:
+
+```bash
+python3 -c "
+import json, os, datetime
+f = os.path.expanduser('$SESSION_FILE')
+data = {'recipe': '$recipe_id', 'saved_at': datetime.datetime.utcnow().isoformat() + 'Z', 'params': <collected_params_dict>}
+open(f, 'w').write(json.dumps(data, indent=2, ensure_ascii=False))
+os.chmod(f, 0o600)
+"
+```
+
+Replace `<collected_params_dict>` with the actual dict of all parameters collected so far.
+Do not include secrets (tokens, passwords) in the session file — only configuration values.
+
+After the final report is delivered (Step 7), delete the session file:
+
+```bash
+rm -f "$HOME/.cloud-weaver-${recipe_id}-session.json"
+```
+
+---
+
+### 3.1 — Ask questions
+
 Ask **exactly one question per message**, in plain language, and validate each
 answer before moving on. Show progress as `Informação X de Y`.
 
