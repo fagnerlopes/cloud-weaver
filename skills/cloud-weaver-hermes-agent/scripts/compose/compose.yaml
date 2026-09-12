@@ -1,0 +1,90 @@
+# cloud-weaver hermes-agent recipe
+#
+# Services:
+#   traefik       - TLS termination via Let's Encrypt; routes / to web-terminal
+#   web-terminal  - ttyd shell via docker exec into hermes-agent (basic auth)
+#   hermes-agent  - Nous Research Hermes Agent; Telegram long polling only
+#
+# Required env vars (from /data/<env>/compose/.env):
+#   TELEGRAM_BOT_TOKEN     - set by participant via `hermes setup` in terminal
+#   TELEGRAM_ALLOWED_USERS - participant's Telegram user ID (integer)
+#   ENV_NAME               - environment name ([a-z0-9_]), e.g. "hermes"
+#   HOSTNAME               - full public hostname, e.g. cr-hermes-net-vm.publiccloud.com.br
+#   TTYD_BASIC_AUTH        - htpasswd entry: admin:{SHA}<base64-sha1-of-password>
+#
+# Data paths on the VM host (persistent disk mounted at /data/<env>/):
+#   ../hermes_data  - Hermes Agent config and state (/root/.hermes inside container)
+#   ../acme         - Traefik Let's Encrypt certificate storage
+
+services:
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      - "--log.level=INFO"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--certificatesresolvers.le.acme.tlschallenge=true"
+      - "--certificatesresolvers.le.acme.email=admin@${HOSTNAME}"
+      - "--certificatesresolvers.le.acme.storage=/acme/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../acme:/acme
+
+  web-terminal:
+    # ttyd: browser-based terminal. Execs into the hermes-agent container so the
+    # participant runs `hermes setup` and other hermes commands directly.
+    #
+    # Q1 (open): this mounts docker.sock with write access, giving the session
+    # root-equivalent access. Alternative: run ttyd as a second process inside a
+    # shared volume without docker.sock. Validate before the workshop.
+    image: ghcr.io/tsl0922/ttyd:alpine
+    restart: unless-stopped
+    command:
+      - "-W"
+      - "docker"
+      - "exec"
+      - "-it"
+      - "hermes-${ENV_NAME}"
+      - "bash"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.terminal.rule=Host(`${HOSTNAME}`)"
+      - "traefik.http.routers.terminal.entrypoints=websecure"
+      - "traefik.http.routers.terminal.tls=true"
+      - "traefik.http.routers.terminal.tls.certresolver=le"
+      - "traefik.http.routers.terminal.middlewares=terminal-auth"
+      - "traefik.http.services.terminal.loadbalancer.server.port=7681"
+      - "traefik.http.middlewares.terminal-auth.basicauth.users=${TTYD_BASIC_AUTH}"
+    depends_on:
+      - hermes-agent
+
+  hermes-agent:
+    image: nousresearch/hermes-agent:latest
+    # Explicit container name so web-terminal can docker exec into it.
+    container_name: "hermes-${ENV_NAME}"
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # hermes_data is bind-mounted from the persistent disk so config and
+      # state survive container restarts and image updates.
+      - ../hermes_data:/root/.hermes
+    # No ports published: communication is Telegram long polling only.
+    # The approvals config is written to /root/.hermes/config.yaml by the
+    # deployer before the first `docker compose up`.
+    healthcheck:
+      # Treat the agent as healthy once its config directory exists.
+      test: ["CMD", "test", "-d", "/root/.hermes"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 60s
