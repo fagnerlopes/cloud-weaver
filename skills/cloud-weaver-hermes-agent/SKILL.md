@@ -20,6 +20,11 @@ One dedicated VM, three containers: `traefik` (TLS via Let's Encrypt),
 Reuse the VM already created by `cloud-weaver-vm-setup` (`env_name`,
 `public_ip`, `vm_name` from the report). Ask exactly one question at a time:
 
+> **Pré-requisito:** A VM deve ter sido provisionada com `--ports 80,443`  
+> (além da porta 22 padrão). O Traefik precisa dessas portas para o desafio  
+> ACME e para servir o terminal web via HTTPS.  
+> Se a VM foi provisionada sem essas portas, rode vm-provision com `--ports 80,443` antes de prosseguir.
+
 | Parameter | Notes |
 |-----------|-------|
 | `telegram_user_id` | The participant's Telegram **numeric user ID** (not username). Tip: send /start to @userinfobot in Telegram to get it. |
@@ -52,7 +57,7 @@ SKILL.md). SSH user is `ubuntu`; SSH key is `~/.ssh/cloud-weaver` (or
 python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --env-name "$env_name" \
   --public-ip "$public_ip" \
-  --hostname "cr-${env_name}-net-vm.publiccloud.com.br" \
+  --hostname "cr-${env_name}-vm.publiccloud.com.br" \
   --telegram-user-id "$telegram_user_id" \
   --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --output "$HOME/.cloud-weaver-${env_name}-hermes-agent.json"
@@ -64,7 +69,7 @@ to reuse the existing `.env` on the VM:
 ```bash
 python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --env-name "$env_name" --public-ip "$public_ip" \
-  --hostname "cr-${env_name}-net-vm.publiccloud.com.br" \
+  --hostname "cr-${env_name}-vm.publiccloud.com.br" \
   --telegram-user-id "$telegram_user_id" \
   --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --skip-secrets

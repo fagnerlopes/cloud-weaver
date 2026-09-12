@@ -125,5 +125,11 @@ expect "rotate ran startVirtualMachine"         file_contains "$BASE/rot1.log" "
 expect "rotate output has status rotated"       file_contains "$BASE/rot1.out" "rotated"
 expect "rotate did NOT run deployVirtualMachine" refute test "$(grep -c deployVirtualMachine "$BASE/rot1.log" 2>/dev/null || echo 0)" -gt 0
 expect "rotate did NOT run createNetwork"        refute test "$(grep -c createNetwork "$BASE/rot1.log" 2>/dev/null || echo 0)" -gt 0
+# registerSSHKeyPair must appear (new key actually registered, not skipped)
+expect "rotate: new key registered"              file_contains "$BASE/rot1.log" "registerSSHKeyPair"
+# New keypair name must match the pattern cr-<env>-key-<timestamp>
+expect "rotate: unique keypair name"             file_contains "$BASE/rot1.out" "cr-hermes-key-"
+# The new keypair name must be DIFFERENT from the old one (cr-hermes-key exact)
+refute "rotate: old keypair NOT reused"          grep -qF '"new_keypair_name": "cr-hermes-key"' "$BASE/rot1.out"
 
 summary "vm-provision"

@@ -22,7 +22,7 @@ Três segredos ficaram na máquina do evento. Cada um tem um desligamento remoto
 | Chave SSH privada | `~/.ssh/cloud-weaver*` na máquina do evento | `resetSSHKeyForVirtualMachine` → invalida sem precisar da máquina |
 | Chave de LLM (`ANTHROPIC_API_KEY` ou equivalente) | `~/.hermes/.env` na VM | Rotacionar no painel do provedor |
 
-Execute os três passos em ordem. Não pule nenhum.
+Execute os quatro passos em ordem. Não pule nenhum.
 
 ---
 
@@ -62,6 +62,7 @@ evento.
 ### 2a. Gerar o novo par
 
 ```bash
+rm -f ~/.ssh/cloud-weaver ~/.ssh/cloud-weaver.pub
 ssh-keygen -t ed25519 -f ~/.ssh/cloud-weaver -C "cloud-weaver" -N ""
 chmod 600 ~/.ssh/cloud-weaver
 chmod 644 ~/.ssh/cloud-weaver.pub

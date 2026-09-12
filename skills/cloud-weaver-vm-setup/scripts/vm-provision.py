@@ -470,13 +470,11 @@ def wait_for_vm_state(client, vm_id, target_state, timeout=300, poll=5):
 
 
 def rotate_ssh_key(client, cfg):
-    """Rotate the SSH keypair on a running VM.
+    """Stop VM, register NEW keypair under a unique name, reset SSH key, start VM.
 
-    Sequence required by the CloudStack API:
-    1. Stop VM  (state must be Stopped before reset)
-    2. Register new keypair
-    3. resetSSHKeyForVirtualMachine
-    4. Start VM
+    Using a timestamp in the keypair name avoids the ensure_ssh_keypair
+    short-circuit (which skips registerSSHKeyPair when the name already exists),
+    guaranteeing the old key is no longer associated after rotation.
 
     Returns a dict with new_keypair_name and vm_id.
     """
@@ -484,8 +482,8 @@ def rotate_ssh_key(client, cfg):
     network_name = "cr-{}".format(env_name)
     vm_name = "{}-vm".format(network_name)
 
-    # Resolve VM id
-    data = client.call("listVirtualMachines", name=vm_name, filter="id,name,state")
+    # Look up VM id
+    data = client.call("listVirtualMachines", name=vm_name, filter="id,state")
     vms = data.get("virtualmachine") or []
     if not vms:
         raise CloudStackError("VM '{}' not found".format(vm_name))
@@ -496,9 +494,10 @@ def rotate_ssh_key(client, cfg):
     client.call("stopVirtualMachine", id=vm_id)
     wait_for_vm_state(client, vm_id, "Stopped")
 
-    # 2. Register new keypair (reuse same name; idempotent if key already registered)
-    new_keypair_name = "{}-key".format(network_name)
-    ensure_ssh_keypair(client, new_keypair_name, cfg["public_key"])
+    # 2. Register a BRAND-NEW keypair under a unique name so the old key is no
+    #    longer associated. Using a timestamp avoids name collisions.
+    new_keypair_name = "cr-{}-key-{}".format(env_name, int(time.time()))
+    client.call("registerSSHKeyPair", name=new_keypair_name, publickey=cfg["public_key"])
 
     # 3. Reset SSH key (VM must be Stopped)
     client.call("resetSSHKeyForVirtualMachine", id=vm_id, keypair=new_keypair_name)

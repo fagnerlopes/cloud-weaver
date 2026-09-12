@@ -67,7 +67,7 @@ expect "rejeita skip-secrets+admin-pass" test $? != 0
 deploy_run() {
   local name="$1" stage="$2"; shift 2
   "$PYTHON" "$SCRIPT" --env-name hermes --public-ip 200.1.2.3 \
-    --hostname "cr-hermes-net-vm.publiccloud.com.br" \
+    --hostname "cr-hermes-vm.publiccloud.com.br" \
     --telegram-user-id 123456789 \
     --ssh-private-key "$BASE/key" \
     --staging-dir "$stage" --output "$BASE/$name.report.json" --dry-run "$@" \
@@ -95,7 +95,7 @@ expect "stage compose.yaml existe"   test -f "$BASE/stage-d1/compose.yaml"
 expect "stage hermes-config.yaml"    test -f "$BASE/stage-d1/hermes-config.yaml"
 
 expect ".env tem TELEGRAM_ALLOWED_USERS" grep -qF "TELEGRAM_ALLOWED_USERS=123456789" "$BASE/stage-d1/.env"
-expect ".env tem HOSTNAME"               grep -qF "HOSTNAME=cr-hermes-net-vm.publiccloud.com.br" "$BASE/stage-d1/.env"
+expect ".env tem HOSTNAME"               grep -qF "HOSTNAME=cr-hermes-vm.publiccloud.com.br" "$BASE/stage-d1/.env"
 expect ".env tem TTYD_BASIC_AUTH"        grep -qF "TTYD_BASIC_AUTH=admin:{SHA}" "$BASE/stage-d1/.env"
 expect ".env tem placeholder token"      grep -qF "TELEGRAM_BOT_TOKEN=REPLACE_WITH" "$BASE/stage-d1/.env"
 
@@ -110,8 +110,7 @@ import json, sys
 r = json.load(open('$BASE/d1.report.json'))
 assert r.get('admin_pass'), 'admin_pass ausente'
 assert len(r['admin_pass']) >= 32, 'admin_pass curto'
-print('ok')
-" >/dev/null
+"
 
 echo "== hermes-agent: idempotência (--skip-secrets) =="
 deploy_run i1 "$BASE/stage-i1" --skip-secrets

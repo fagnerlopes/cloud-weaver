@@ -240,9 +240,12 @@ def main(argv=None):
 
     report = build_report(cfg, admin_pass)
     if cfg["output"]:
-        Path(cfg["output"]).write_text(
+        report_path = cfg["output"]
+        Path(report_path).write_text(
             json.dumps(report, indent=2, sort_keys=True) + "\n",
             encoding="utf-8")
+        # Restrict permissions: the report contains admin_pass in plaintext.
+        os.chmod(report_path, 0o600)
     # Print only the URL and key facts — never the admin_pass — to stdout.
     print("Deployed Hermes Agent: terminal {terminal_url}".format(**report))
     return 0
