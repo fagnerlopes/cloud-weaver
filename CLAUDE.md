@@ -42,7 +42,7 @@ Este é o caminho que o participante do workshop percorre. Qualquer mudança nas
 **Consequências ao alterar skills:**
 
 - O participante roda em **projeto próprio, com config de agente própria** — nada do `.claude/` deste repo alcança ele. Nunca assumir permissões, allowlists ou variáveis que só existem aqui.
-- **Permissões vêm do instalador, não da skill.** O `cloud-weaver-repo-setup` roda `gh secret set`, que em auto mode é barrado pelo classificador (Secret-Store Writes) e trava o provisionamento. O Cofounder resolve isso fixando `.claude/settings.json` no projeto do participante durante a instalação (`cofounder-computer-setup/scripts/install.sh:372-397`, com `permissions.allow: ["Bash", "Read", "WebFetch"]`). O `install.sh` do CloudWeaver **ainda não faz isso** — é o que precisa ser espelhado.
+- **Permissões vêm do instalador, não da skill.** O `cloud-weaver-repo-setup` roda `gh secret set`, que em auto mode é barrado pelo classificador (Secret-Store Writes) e trava o provisionamento. O Cofounder resolve isso fixando `.claude/settings.json` no projeto do participante durante a instalação (`cofounder-computer-setup/scripts/install.sh:372-397`, com `permissions.allow: ["Bash", "Read", "WebFetch"]`). Os três instaladores do CloudWeaver passaram a espelhar isso (ADR-0007 do `cloud-weaver-web`), com merge idempotente que preserva as demais chaves do usuário.
 - Mudanças no nome do plugin, na lista de agentes, no fluxo de bootstrap ou nas permissões fixadas exigem atualizar `install.sh` no `cloud-weaver-web` e refazer o build/deploy da landing.
 
 ## Convenções de código e saída
