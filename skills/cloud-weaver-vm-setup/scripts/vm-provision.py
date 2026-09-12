@@ -63,6 +63,10 @@ def build_signed_query(command, params, api_key, secret):
     parameter (including apiKey and command/response) by key, join as
     key=base64-ish-urlencoded pairs, then sign the whole string with the
     secret key. The signature itself is appended as the final pair.
+
+    IMPORTANT: CloudStack requires the canonical string to be lowercased
+    before computing the HMAC-SHA1 signature (the request itself is sent
+    with the original mixed-case keys/values).
     """
     q = dict(params)
     q["command"] = command
@@ -72,8 +76,9 @@ def build_signed_query(command, params, api_key, secret):
         "{}={}".format(k, urllib.parse.quote_plus(str(v)))
         for k, v in sorted(q.items())
     )
+    # CloudStack signing spec: lowercase the full canonical string before HMAC.
     digest = hmac.new(
-        str(secret).encode("utf-8"), canonical.encode("utf-8"), hashlib.sha1
+        str(secret).encode("utf-8"), canonical.lower().encode("utf-8"), hashlib.sha1
     ).digest()
     signature = urllib.parse.quote_plus(base64.b64encode(digest).decode("ascii"))
     return "{}&signature={}".format(canonical, signature)
