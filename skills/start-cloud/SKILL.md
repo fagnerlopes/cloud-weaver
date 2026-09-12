@@ -45,7 +45,7 @@ instructions. Handle the flags it prints:
 | `NEEDS_COMPUTER_SETUP` | Invoke `cloud-weaver-computer-setup`, then re-run the check |
 | `NEEDS_GITHUB_AUTH` | Ask the user to run `gh auth login` in their OS terminal, then resume |
 | `NEEDS_LOCAWEB_CREDENTIALS` | Ask the user to export `LOCAWEB_API_KEY` and `LOCAWEB_API_SECRET` in their OS terminal and start a new session. **Never accept the values in the conversation.** |
-| `NEEDS_TELEGRAM_BOT_TOKEN` | Ask the user to export `TELEGRAM_BOT_TOKEN` in their OS terminal and start a new session. **Never accept the value in the conversation.** |
+| `NEEDS_TELEGRAM_BOT_TOKEN` | Ask the user to export `TELEGRAM_BOT_TOKEN` in their OS terminal and start a new session. **Never accept the value in the conversation.** To find the token of an existing bot: open [@BotFather](https://t.me/BotFather) on Telegram → `/mybots` → select the bot → **API Token**. |
 | `PREFLIGHT_FAILED` | Explain each reason in plain language, give the remediation, and **stop** |
 | No flags | The environment is ready — continue |
 

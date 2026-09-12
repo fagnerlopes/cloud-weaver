@@ -15,7 +15,7 @@ This is the first skill invoked at session start.
 
 ## Step 0 — Version Check
 
-<!-- CLOUD_WEAVER_VERSION: 0.9.3 -->
+<!-- CLOUD_WEAVER_VERSION: 0.9.4 -->
 
 The `cloud-weaver` marker above contains the loaded version of the cloud-weaver skills.
 
@@ -120,6 +120,9 @@ NEEDS_TELEGRAM_BOT_TOKEN: ...
 
 **Action:** ask the user to export `TELEGRAM_BOT_TOKEN` in their OS terminal
 and start a new session. **Never accept the value in the conversation.**
+
+To find the token of an existing bot: open [@BotFather](https://t.me/BotFather)
+on Telegram, send `/mybots`, select the bot, then tap **API Token**.
 
 ## Handling Failures
 
