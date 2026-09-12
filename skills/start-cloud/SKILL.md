@@ -61,7 +61,7 @@ is coming, never offered as a choice.
 
 | Recipe | ID | Description | Status |
 |--------|----|-------------|--------|
-| Hermes Agent | `hermes` | Agente de WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
+| WAHA | `waha` | Agente de WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
 | Coolify | `coolify` | PaaS self-hosted para publicar suas próprias apps | 🔜 em breve |
 | Jitsi Meet | `jitsi` | Servidor de videoconferência | 🔜 em breve |
 

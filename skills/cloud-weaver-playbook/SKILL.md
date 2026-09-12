@@ -59,7 +59,7 @@ Execute skills by using the Skill tool to invoke them and following the instruct
 | `cloud-weaver-pre-flight-check` | Version check + environment validation (gh auth, SSH, credentials, sensitive files) | ✅ |
 | `cloud-weaver-computer-setup` | Install/verify `gh`, `ssh`, `jq` and the Ed25519 SSH key | ✅ |
 | `cloud-weaver-vm-setup` | Provision VM + network + firewall on the Locaweb Cloud (idempotent) | ✅ |
-| `cloud-weaver-hermes` | Recipe: Hermes Agent (WAHA + PostgreSQL) | ✅ |
+| `cloud-weaver-waha` | Recipe: WAHA (WhatsApp HTTP API + PostgreSQL) | ✅ |
 | `cloud-weaver-monitor` | Health check + polling + rollback | ✅ |
 | `cloud-weaver-coolify` | Recipe: Coolify (PaaS self-hosted) | 🔜 not implemented |
 | `cloud-weaver-jitsi` | Recipe: Jitsi Meet | 🔜 not implemented |

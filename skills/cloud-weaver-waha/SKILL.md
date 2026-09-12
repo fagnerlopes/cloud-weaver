@@ -1,14 +1,14 @@
 ---
-name: cloud-weaver-hermes
+name: cloud-weaver-waha
 description: >
-  This skill should be used when deploying the Hermes Agent recipe — the WAHA
+  This skill should be used when deploying the WAHA recipe — the WAHA
   (WhatsApp HTTP API) service backed by PostgreSQL — onto a cloud-weaver VM
   that is already provisioned (see cloud-weaver-vm-setup). It collects the
   remaining configuration one question at a time, then ships a docker compose
   stack over SSH and starts it. Idempotent — re-runs reuse the remote .env.
 ---
 
-# Hermes Agent (WAHA + PostgreSQL)
+# WAHA (WhatsApp HTTP API + PostgreSQL)
 
 One dedicated VM, two containers: `waha` (WhatsApp HTTP API, port 3000) and
 `pg` (PostgreSQL 17, healthcheck-gated). Persistent data lives on the VM's
@@ -30,7 +30,7 @@ Validate `env_name` against `[a-z0-9_]` and the port against 1–65535.
 
 Show a short plan before deploying:
 
-> Vou instalar o Hermes Agent na VM `<env_name>`: WAHA na porta `<api_port>`
+> Vou instalar o WAHA na VM `<env_name>`: WAHA na porta `<api_port>`
 > + PostgreSQL, dados persistentes em /data, credenciais geradas e guardadas
 > no .env da VM (nunca na conversa).
 
