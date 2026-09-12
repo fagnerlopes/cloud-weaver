@@ -94,7 +94,7 @@ If gen-recipe.py exits non-zero, show the error output and stop.
 
 ```bash
 cd "$STAGE_DIR"
-bash "$SKILL_DIR/scripts/repo-init.sh" "$REPO_NAME" private
+python3 "$SKILL_DIR/scripts/repo-init.py" "$REPO_NAME" private
 ```
 
 This creates a private GitHub repo under the authenticated user's account,

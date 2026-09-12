@@ -45,7 +45,7 @@ run it with bash — resolve the path against the skill directory, not your curr
 working directory:
 
 ```bash
-bash <this-skill-dir>/scripts/preflight.sh
+python3 <this-skill-dir>/scripts/preflight.py
 ```
 
 The script exits `0` and prints `PREFLIGHT_PASSED` on success, or exits `1` and
@@ -79,11 +79,13 @@ and re-run the check.
 
 ### 3. Dev Tools
 
-The script checks for `gh`, `ssh`, and `jq`. If any are missing, it prints:
+The script checks for `gh` and `ssh`. If any are missing, it prints:
 
 ```
 NEEDS_COMPUTER_SETUP: missing <tool1> <tool2> ...
 ```
+
+`jq` is **not** required — the `gh` CLI has a built-in `--jq` flag used throughout.
 
 **Action:** invoke `cloud-weaver-computer-setup`.
 
