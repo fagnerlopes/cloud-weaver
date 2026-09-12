@@ -87,6 +87,63 @@ python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --skip-secrets
 ```
 
+## 3.5 Guided setup — wait for `hermes setup` completion
+
+After the deployer exits successfully, the containers are running but the Hermes
+Agent has not been configured yet. Guide the user through the setup:
+
+1. Show the web terminal URL and credentials from the JSON report:
+   - **URL:** `https://<hostname>`
+   - **User:** `admin`
+   - **Password:** `<admin_pass>` (display once; instruct to save it)
+
+2. Instruct the user (in PT-BR):
+
+   > Abra o terminal web, faça login com as credenciais acima e execute o
+   > comando abaixo — ele configura o Hermes Agent e cria um marcador que
+   > confirma a conclusão:
+   >
+   > ```
+   > hermes setup && touch /root/.hermes/.setup-complete
+   > ```
+   >
+   > Responda **"pronto"** quando terminar.
+
+3. **Wait for the user to reply** before proceeding.
+
+4. Validate via SSH that the sentinel file was created:
+
+   ```bash
+   ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+     "test -f /data/${env_name}/hermes_data/.setup-complete && echo OK || echo MISSING"
+   ```
+
+   - **OK** → proceed to step 3.6.
+   - **MISSING** → tell the user the file was not found, ask them to run the
+     command again in the terminal and reply "pronto" when done. Retry once.
+     If still missing after the retry, stop and ask the user to check the
+     terminal for errors.
+
+## 3.6 Restart hermes-agent to apply the new configuration
+
+Once the sentinel file is confirmed, restart the hermes-agent container so it
+picks up any configuration written by `hermes setup`:
+
+```bash
+ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+  "docker compose -f /data/${env_name}/compose/compose.yaml restart hermes-agent"
+```
+
+Wait 10 seconds, then check the last log lines to confirm it started cleanly:
+
+```bash
+ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+  "docker compose -f /data/${env_name}/compose/compose.yaml logs hermes-agent --tail 20"
+```
+
+If the logs show an obvious crash or error, surface them to the user before
+proceeding to the monitor step.
+
 ## 4. What the deployer does
 
 1. Generates an `admin_pass` with `secrets.token_urlsafe(32)`.
@@ -103,9 +160,8 @@ to the user:
 
 - **Terminal web:** `https://<hostname>` — login com usuário `admin`, senha `<admin_pass>`
 - **Próximos passos:**
-  1. Acesse o terminal web e faça login.
-  2. Execute `hermes setup` no terminal para configurar o provedor de LLM e o GitHub (o bot do Telegram já está configurado).
-  3. Envie uma mensagem ao bot no Telegram para testar.
+  1. Envie uma mensagem ao bot no Telegram para testar — o Hermes Agent já está configurado e em execução.
+  2. Para abrir o terminal web novamente: acesse `https://<hostname>` e faça login com as credenciais acima.
 
 **admin_pass está no JSON de relatório** (`admin_pass`). Exiba-o uma única vez ao usuário e instrua a anotá-lo.
 
