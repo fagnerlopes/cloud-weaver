@@ -46,31 +46,6 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # cloud-init on a fresh VM may take 60-90s to inject the SSH key pair.
-      # Poll until key-auth works (up to 5 minutes) before handing off to Kamal.
-      # Locaweb Cloud VMs use 'root' as the default SSH user.
-      - name: Wait for SSH key auth
-        run: |
-          echo "Aguardando SSH na VM $INFRA_WEB_IP..."
-          for i in $(seq 1 60); do
-            if ssh -o StrictHostKeyChecking=no \
-                   -o BatchMode=yes \
-                   -o ConnectTimeout=5 \
-                   -o IdentitiesOnly=yes \
-                   root@"$INFRA_WEB_IP" echo ok 2>/dev/null; then
-              echo "SSH pronto (tentativa $i)"
-              exit 0
-            fi
-            echo "Tentativa $i/60: SSH ainda não pronto, aguardando 10s..."
-            sleep 10
-          done
-          echo "=== Timeout — diagnóstico verbose ==="
-          ssh -v -o StrictHostKeyChecking=no -o BatchMode=yes \
-              -o ConnectTimeout=5 -o IdentitiesOnly=yes \
-              root@"$INFRA_WEB_IP" echo ok 2>&1 | head -80 || true
-          echo "Timeout aguardando SSH (10 min)" >&2
-          exit 1
-
       - uses: crazy-max/ghaction-github-runtime@v3
 
       - uses: ruby/setup-ruby@v1
