@@ -48,6 +48,26 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      # cloud-init on a fresh VM may take 60-90s to inject the SSH key pair.
+      # Poll until key-auth works (up to 5 minutes) before handing off to Kamal.
+      - name: Wait for SSH key auth
+        run: |
+          echo "Aguardando SSH na VM $INFRA_WEB_IP..."
+          for i in $(seq 1 30); do
+            if ssh -o StrictHostKeyChecking=no \
+                   -o BatchMode=yes \
+                   -o ConnectTimeout=5 \
+                   -o IdentitiesOnly=yes \
+                   ubuntu@"$INFRA_WEB_IP" echo ok 2>/dev/null; then
+              echo "SSH pronto (tentativa $i)"
+              exit 0
+            fi
+            echo "Tentativa $i/30: SSH ainda não pronto, aguardando 10s..."
+            sleep 10
+          done
+          echo "Timeout aguardando SSH" >&2
+          exit 1
+
       - uses: crazy-max/ghaction-github-runtime@v3
 
       - uses: ruby/setup-ruby@v1
