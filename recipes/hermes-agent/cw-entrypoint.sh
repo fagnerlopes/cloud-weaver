@@ -21,7 +21,16 @@ fi
 # Credentials file for nginx (apr1, the same scheme the VPS recipe feeds Traefik).
 printf '%s:%s\n' "$TTYD_USER" "$(openssl passwd -apr1 "$TTYD_PASSWORD")" \
     > /etc/nginx/cw.htpasswd
-chmod 600 /etc/nginx/cw.htpasswd
+
+# The master process is root but the workers drop to the user named in
+# nginx.conf (www-data on Debian), and it is a worker that opens this file on
+# every authenticated request. Left at 600 root:root it fails with
+# "Permission denied" and nginx answers 500 — to both wrong and right
+# passwords, so the terminal never opens.
+NGINX_USER="$(awk '$1 == "user" { sub(/;$/, "", $2); print $2; exit }' /etc/nginx/nginx.conf)"
+chown "root:${NGINX_USER:-www-data}" /etc/nginx/cw.htpasswd 2>/dev/null \
+    && chmod 640 /etc/nginx/cw.htpasswd \
+    || chmod 644 /etc/nginx/cw.htpasswd
 
 # ttyd, kept alive by a restart loop — the upstream image's s6 tree supervises
 # the gateway only, and we deliberately do not graft services into it.

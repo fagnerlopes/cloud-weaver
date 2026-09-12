@@ -2,4 +2,8 @@
 # ghcr.io/fagnerlopes/cw-hermes-agent to eliminate on-the-day build time.
 # Kamal builds this trivial Dockerfile (pull + re-tag), pushes to
 # ghcr.io/<your-github-username>/@[REPO_NAME], and deploys to the VM.
-FROM ghcr.io/fagnerlopes/cw-hermes-agent:latest
+#
+# The tag is pinned to a CloudWeaver release rather than :latest, so what you
+# deploy is the image this release was tested against. scripts/stamp-version.sh
+# writes it from plugin.json; do not edit it by hand.
+FROM ghcr.io/fagnerlopes/cw-hermes-agent:1.3.1
