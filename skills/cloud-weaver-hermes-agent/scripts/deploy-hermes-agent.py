@@ -46,6 +46,8 @@ def parse_args(argv):
     p.add_argument("--ssh-user", default=DEFAULT_SSH_USER)
     p.add_argument("--ssh-private-key", required=True,
                    help="Path to the Ed25519 private key")
+    p.add_argument("--terminal-user", required=True,
+                   help="Username for the web terminal basic auth (whitespace is trimmed)")
     p.add_argument("--admin-pass", default=None,
                    help="Override the generated admin password (tests only)")
     p.add_argument("--staging-dir", default=None,
@@ -60,6 +62,11 @@ def parse_args(argv):
 
 
 def validate(cfg):
+    # Trim whitespace from terminal_user here so the rest of the code uses the
+    # clean value — the caller (SKILL.md) may pass a string with accidental spaces.
+    cfg["terminal_user"] = cfg["terminal_user"].strip()
+    if not cfg["terminal_user"]:
+        raise ValueError("--terminal-user cannot be empty or whitespace-only")
     if not NAME_RE.match(cfg["env_name"]):
         raise ValueError(
             "Invalid env_name '{}' — only lowercase letters, digits and "
@@ -133,7 +140,7 @@ def build_secrets(cfg):
     if cfg["skip_secrets"]:
         return None, None
     admin_pass = cfg.get("admin_pass") or gen_secret(32)
-    ttyd_basic_auth = make_basic_auth("admin", admin_pass)
+    ttyd_basic_auth = make_basic_auth(cfg["terminal_user"], admin_pass)
     env_map = {
         # Bot token comes from the environment — never from CLI args or chat.
         "TELEGRAM_BOT_TOKEN": os.environ["TELEGRAM_BOT_TOKEN"],
@@ -218,15 +225,15 @@ def build_report(cfg, admin_pass):
         "public_ip": cfg["public_ip"],
         "hostname": hostname,
         "terminal_url": "https://{}".format(hostname),
-        "admin_user": "admin",
+        "admin_user": cfg["terminal_user"],
         # admin_pass is included here (report file) but never printed to stdout,
         # so it does not appear in the agent's visible session output.
         "admin_pass": admin_pass,
         "data_path": "/data/{}".format(cfg["env_name"]),
         "compose_path": "/data/{}/compose".format(cfg["env_name"]),
         "note": (
-            "Run `hermes setup` in the web terminal to configure the "
-            "LLM provider and GitHub. The Telegram bot is already configured."
+            "The Telegram bot is already configured. "
+            "Run `hermes setup` in the web terminal to configure the LLM provider and GitHub."
         ),
     }
 

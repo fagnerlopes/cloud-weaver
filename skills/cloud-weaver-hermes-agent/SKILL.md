@@ -39,6 +39,7 @@ Reuse the VM already created by `cloud-weaver-vm-setup` (`env_name`,
 
 | Parameter | Notes |
 |-----------|-------|
+| `terminal_user` | Nome de usuário para o login no terminal web. Aplicar `.strip()` no valor coletado antes de usar — nunca aceitar uma string vazia ou só de espaços. |
 | `telegram_user_id` | O **ID numérico** do usuário no Telegram (não o @username). Para descobrir: abra o Telegram, pesquise por **@userinfobot** e envie qualquer mensagem — o bot responde com o seu `Id`. |
 
 The skill derives `hostname` automatically: `<public_ip>.nip.io`
@@ -70,6 +71,7 @@ python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --env-name "$env_name" \
   --public-ip "$public_ip" \
   --hostname "${public_ip}.nip.io" \
+  --terminal-user "$terminal_user" \
   --telegram-user-id "$telegram_user_id" \
   --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --output "$HOME/.cloud-weaver-${env_name}-hermes-agent.json"
@@ -82,6 +84,7 @@ to reuse the existing `.env` on the VM:
 python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --env-name "$env_name" --public-ip "$public_ip" \
   --hostname "${public_ip}.nip.io" \
+  --terminal-user "$terminal_user" \
   --telegram-user-id "$telegram_user_id" \
   --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --skip-secrets
@@ -94,7 +97,7 @@ Agent has not been configured yet. Guide the user through the setup:
 
 1. Show the web terminal URL and credentials from the JSON report:
    - **URL:** `https://<hostname>`
-   - **User:** `admin`
+   - **User:** `<terminal_user>`
    - **Password:** `<admin_pass>` (display once; instruct to save it)
 
 2. Instruct the user (in PT-BR):
@@ -158,7 +161,7 @@ proceeding to the monitor step.
 Read the JSON report at `~/.cloud-weaver-<env>-hermes-agent.json` and present
 to the user:
 
-- **Terminal web:** `https://<hostname>` — login com usuário `admin`, senha `<admin_pass>`
+- **Terminal web:** `https://<hostname>` — login com usuário `<terminal_user>`, senha `<admin_pass>`
 - **Próximos passos:**
   1. Envie uma mensagem ao bot no Telegram para testar — o Hermes Agent já está configurado e em execução.
   2. Para abrir o terminal web novamente: acesse `https://<hostname>` e faça login com as credenciais acima.
