@@ -39,7 +39,7 @@ Reuse the VM already created by `cloud-weaver-vm-setup` (`env_name`,
 
 | Parameter | Notes |
 |-----------|-------|
-| `telegram_user_id` | The participant's Telegram **numeric user ID** (not username). Tip: send /start to @userinfobot in Telegram to get it. |
+| `telegram_user_id` | O **ID numérico** do usuário no Telegram (não o @username). Para descobrir: abra o Telegram, pesquise por **@userinfobot** e envie qualquer mensagem — o bot responde com o seu `Id`. |
 
 The skill derives `hostname` automatically: `<public_ip>.nip.io`
 where `public_ip` comes from the vm-setup report. **Não use `vm_name` nem `publiccloud.com.br`.**
