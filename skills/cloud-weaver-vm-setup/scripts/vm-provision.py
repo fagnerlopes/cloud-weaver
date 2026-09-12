@@ -467,12 +467,13 @@ def rotate_ssh_key(client, cfg):
     vm_id = vms[0]["id"]
 
     # 1. Stop
-    print("Stopping VM {}...".format(vm_name))
+    print("STEP: Parando VM {}...".format(vm_name), flush=True)
     client.call("stopVirtualMachine", id=vm_id)
     wait_for_vm_state(client, vm_id, "Stopped")
 
     # 2. Register a BRAND-NEW keypair under a unique name so the old key is no
     #    longer associated. Using a timestamp avoids name collisions.
+    print("STEP: Registrando nova chave SSH...", flush=True)
     new_keypair_name = "cr-{}-key-{}".format(env_name, int(time.time()))
     client.call("registerSSHKeyPair", name=new_keypair_name, publickey=cfg["public_key"])
 
@@ -480,7 +481,7 @@ def rotate_ssh_key(client, cfg):
     client.call("resetSSHKeyForVirtualMachine", id=vm_id, keypair=new_keypair_name)
 
     # 4. Start
-    print("Starting VM {}...".format(vm_name))
+    print("STEP: Iniciando VM {}...".format(vm_name), flush=True)
     client.call("startVirtualMachine", id=vm_id)
     wait_for_vm_state(client, vm_id, "Running")
 
@@ -684,12 +685,15 @@ def provision(client, cfg):
     zone_name = cfg["zone"]
     ports = sorted(set([22] + cfg["ports"]))
 
+    print("STEP: Resolvendo zona e configurando rede...", flush=True)
     zone_id = resolve_zone(client, zone_name)
     network_name, net_id = ensure_network(client, env_name, zone_id, zone_name)
 
+    print("STEP: Registrando chave SSH...", flush=True)
     keypair_name = "{}-key".format(network_name)
     ensure_ssh_keypair(client, keypair_name, cfg["public_key"])
 
+    print("STEP: Provisionando VM (pode levar alguns minutos)...", flush=True)
     userdata_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                  "userdata", "boot_vm.sh")
     template_id = resolve_template(client, zone_id)
@@ -697,16 +701,19 @@ def provision(client, cfg):
     vm_id = ensure_vm(client, vm_name, cfg["plan"], template_id, zone_id,
                       net_id, keypair_name, userdata_path, zone_name)
 
+    print("STEP: Configurando IP público e firewall...", flush=True)
     # Use the source NAT IP (auto-assigned to the network) with port forwarding
     # instead of allocating a second static NAT IP — saves one public IP per env.
     source_nat_ip = find_source_nat_ip(client, net_id)
     ensure_port_forwarding(client, source_nat_ip["id"], vm_id, ports)
 
+    print("STEP: Criando e anexando disco de dados...", flush=True)
     disk_name = "{}-data".format(network_name)
     vol_id = ensure_data_disk(client, disk_name, zone_id, cfg["disk_gb"],
                               vm_id, network_name)
 
     internal_ip = vm_internal_ip(client, vm_id)
+    print("STEP: Provisionamento concluído.", flush=True)
 
     return {
         "env_name": env_name,

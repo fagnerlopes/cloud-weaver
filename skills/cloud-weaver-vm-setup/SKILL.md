@@ -71,8 +71,24 @@ O endpoint é sempre `https://painel-cloud.locaweb.com.br/client/api` —
 já embutido como padrão no script. `LOCAWEB_API_ENDPOINT` ou `--endpoint`
 sobrepõem quando necessário, mas **não peça ao usuário**.
 
-The script prints a JSON report with `network_name`, `vm_id`, `public_ip`,
+The script emits `STEP: <descrição>` lines to stdout at each provisioning
+phase, then prints a JSON report with `network_name`, `vm_id`, `public_ip`,
 `internal_ip`, `firewall_ports` and `hero_url`.
+
+**Output filtering (mandatory):** capture the full script output; display to
+the user **only** the `STEP:` lines, formatted as progress bullets with emoji:
+
+| Linha do script | Exibir ao usuário |
+|---|---|
+| `STEP: Resolvendo zona e configurando rede...` | `⏳ Configurando rede...` |
+| `STEP: Registrando chave SSH...` | `⏳ Registrando chave SSH...` |
+| `STEP: Provisionando VM (pode levar alguns minutos)...` | `⏳ Criando VM (aguarde ~2 min)...` |
+| `STEP: Configurando IP público e firewall...` | `⏳ Configurando firewall e IP público...` |
+| `STEP: Criando e anexando disco de dados...` | `⏳ Criando disco de dados...` |
+| `STEP: Provisionamento concluído.` | `✅ VM provisionada!` |
+
+On failure (non-zero exit or line starting with `FATAL:`), display the complete
+output for diagnosis.
 
 ## 5. Verify reachability
 

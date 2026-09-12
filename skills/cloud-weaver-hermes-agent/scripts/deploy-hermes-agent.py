@@ -85,7 +85,9 @@ def validate(cfg):
     if cfg["skip_secrets"] and cfg.get("admin_pass"):
         raise ValueError("--skip-secrets cannot be combined with --admin-pass")
     # Bot token is a secret — must come from the environment, never the CLI.
-    if not cfg.get("skip_secrets"):
+    # In dry-run the deployer only prints the command plan, so a missing token
+    # is tolerated; build_secrets() writes a REPLACE_WITH placeholder instead.
+    if not cfg.get("skip_secrets") and not cfg.get("dry_run"):
         bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
         if not bot_token or bot_token.startswith("REPLACE_"):
             raise ValueError(
@@ -101,8 +103,10 @@ class Runner:
         self.stream = stream
 
     def cmd(self, argv):
-        print("CMD " + shlex.join(argv), file=self.stream, flush=True)
+        # In dry-run, print every command so callers can assert the plan.
+        # In real mode, suppress command lines — only STEP: markers are shown.
         if self.dry_run:
+            print("CMD " + shlex.join(argv), file=self.stream, flush=True)
             return 0
         try:
             proc = subprocess.run(argv, capture_output=True, text=True)
@@ -143,7 +147,10 @@ def build_secrets(cfg):
     ttyd_basic_auth = make_basic_auth(cfg["terminal_user"], admin_pass)
     env_map = {
         # Bot token comes from the environment — never from CLI args or chat.
-        "TELEGRAM_BOT_TOKEN": os.environ["TELEGRAM_BOT_TOKEN"],
+        # When running in dry-run mode the token may be absent or empty; write a
+        # REPLACE_WITH placeholder so the generated .env template is complete.
+        "TELEGRAM_BOT_TOKEN": (
+            os.environ.get("TELEGRAM_BOT_TOKEN") or "REPLACE_WITH_TELEGRAM_BOT_TOKEN"),
         "TELEGRAM_ALLOWED_USERS": str(cfg["telegram_user_id"]),
         "ENV_NAME": cfg["env_name"],
         "HOSTNAME": cfg["hostname"],
@@ -193,11 +200,13 @@ def deploy(runner, cfg, base, ssh, scp):
     host = "{}@{}".format(cfg["ssh_user"], cfg["public_ip"])
 
     # Create data directories on the persistent disk
+    print("STEP: Criando diretórios na VM...", flush=True)
     runner.cmd(ssh + [
         "sudo mkdir -p {}/compose {}/hermes_data {}/acme".format(data, data, data)
     ])
 
     # Upload compose stack and secrets
+    print("STEP: Enviando arquivos de configuração...", flush=True)
     runner.cmd(scp + ["{}/compose.yaml".format(base),
                       "{}:{}/compose/compose.yaml".format(host, data)])
     if not cfg["skip_secrets"]:
@@ -210,6 +219,7 @@ def deploy(runner, cfg, base, ssh, scp):
                       "{}:{}/hermes_data/config.yaml".format(host, data)])
 
     # Bring up the stack
+    print("STEP: Iniciando containers (pode levar alguns minutos)...", flush=True)
     runner.cmd(ssh + [
         "cd {}/compose && sudo docker compose -p hermes-agent-{} "
         "-f compose.yaml --env-file .env up -d --wait --wait-timeout {}".format(

@@ -37,28 +37,33 @@ chmod 600 "$BASE/key"
 
 "$PYTHON" "$SCRIPT" --env-name "Bad Name" --public-ip 10.0.0.1 \
   --hostname h.example.com --telegram-user-id 123 \
+  --terminal-user testuser \
   --ssh-private-key "$BASE/key" --dry-run >"$BASE/v1.out" 2>&1
 expect "rejeita env_name inválido"  test $? != 0
 expect "mensagem env_name"          grep -qF "only lowercase" "$BASE/v1.out"
 
 "$PYTHON" "$SCRIPT" --env-name hermes --public-ip "not-ip" \
   --hostname h.example.com --telegram-user-id 123 \
+  --terminal-user testuser \
   --ssh-private-key "$BASE/key" --dry-run >"$BASE/v2.out" 2>&1
 expect "rejeita IP inválido"        test $? != 0
 
 "$PYTHON" "$SCRIPT" --env-name hermes --public-ip 10.0.0.1 \
   --hostname h.example.com --telegram-user-id 0 \
+  --terminal-user testuser \
   --ssh-private-key "$BASE/key" --dry-run >"$BASE/v3.out" 2>&1
 expect "rejeita telegram_user_id 0" test $? != 0
 
 "$PYTHON" "$SCRIPT" --env-name hermes --public-ip 10.0.0.1 \
   --hostname h.example.com --telegram-user-id 123 \
+  --terminal-user testuser \
   --ssh-private-key "$BASE/missing" --dry-run >"$BASE/v4.out" 2>&1
 expect "rejeita chave ausente"      test $? != 0
 expect "mensagem SSH key not found" grep -qF "SSH private key not found" "$BASE/v4.out"
 
 "$PYTHON" "$SCRIPT" --env-name hermes --public-ip 10.0.0.1 \
   --hostname h.example.com --telegram-user-id 123 \
+  --terminal-user testuser \
   --ssh-private-key "$BASE/key" --skip-secrets \
   --admin-pass "x" --dry-run >"$BASE/v5.out" 2>&1
 expect "rejeita skip-secrets+admin-pass" test $? != 0
@@ -66,9 +71,11 @@ expect "rejeita skip-secrets+admin-pass" test $? != 0
 # Helper: run a dry-run deploy
 deploy_run() {
   local name="$1" stage="$2"; shift 2
-  "$PYTHON" "$SCRIPT" --env-name hermes --public-ip 200.1.2.3 \
+  # Unset TELEGRAM_BOT_TOKEN so dry-run always writes the REPLACE_WITH placeholder.
+  TELEGRAM_BOT_TOKEN="" "$PYTHON" "$SCRIPT" --env-name hermes --public-ip 200.1.2.3 \
     --hostname "cr-hermes-vm.publiccloud.com.br" \
     --telegram-user-id 123456789 \
+    --terminal-user admin \
     --ssh-private-key "$BASE/key" \
     --staging-dir "$stage" --output "$BASE/$name.report.json" --dry-run "$@" \
     >"$BASE/$name.out" 2>&1

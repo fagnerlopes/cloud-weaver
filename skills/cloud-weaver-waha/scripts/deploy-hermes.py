@@ -79,8 +79,10 @@ class Runner:
         self.stream = stream
 
     def cmd(self, argv):
-        print("CMD " + shlex.join(argv), file=self.stream, flush=True)
+        # In dry-run, print every command so callers can assert the plan.
+        # In real mode, suppress command lines — only STEP: markers are shown.
         if self.dry_run:
+            print("CMD " + shlex.join(argv), file=self.stream, flush=True)
             return 0
         try:
             proc = subprocess.run(argv, capture_output=True, text=True)
@@ -148,13 +150,18 @@ def deploy(runner, cfg, base, ssh, scp):
     data = "/data/{}".format(env)
     host = "{}@{}".format(cfg["ssh_user"], cfg["public_ip"])
 
+    print("STEP: Criando diretórios na VM...", flush=True)
     runner.cmd(ssh + ["sudo mkdir -p {}/compose {}/waha {}/pgdata".format(data, data, data)])
     runner.cmd(ssh + ["sudo chown -R {}:{} {}/pgdata".format(PG_UID, PG_UID, data)])
+
+    print("STEP: Enviando arquivos de configuração...", flush=True)
     runner.cmd(scp + ["{}/compose.yaml".format(base), "{}:{}/compose/compose.yaml".format(host, data)])
     runner.cmd(scp + ["{}/initdb.sql".format(base), "{}:{}/compose/initdb.sql".format(host, data)])
     if not cfg["skip_secrets"]:
         runner.cmd(scp + ["{}/.env".format(base), "{}:{}/compose/.env".format(host, data)])
         runner.cmd(ssh + ["sudo chmod 600 {}/compose/.env".format(data)])
+
+    print("STEP: Iniciando containers (pode levar alguns minutos)...", flush=True)
     runner.cmd(ssh + [
         "cd {}/compose && sudo docker compose -p hermes-{} "
         "-f compose.yaml --env-file .env up -d --wait --wait-timeout {}".format(

@@ -175,9 +175,12 @@ anything that is not a real blocker.
 2. For each selected recipe, use the Skill tool to invoke `cloud-weaver-<id>`
    and follow it. It ships the docker compose stack over SSH and starts it.
 
-Give a plain-language status update as each phase starts, e.g.
-*"Estou criando sua máquina virtual — isso leva uns 2 minutos..."*. Never leave
-the user staring at silence during a long step.
+**Output filtering (mandatory for all cloud-weaver scripts):** every script
+emits `STEP: <descrição>` lines. Capture the full output and display to the
+user **only** those lines, formatted as progress bullets with emoji (⏳ for
+in-progress, ✅ for the final "concluído" step). Never dump raw command lines
+(`CMD …`) or JSON blobs mid-run. On failure (non-zero exit or a `FATAL:` line),
+show the complete output so the error is visible for diagnosis.
 
 ---
 
