@@ -93,12 +93,12 @@ output for diagnosis.
 ## 5. Verify reachability
 
 Wait a reasonable time for cloud-init to finish (the VM userdata installs
-Docker and mounts `/data`), then verify SSH as `ubuntu` using the dedicated
+Docker and mounts `/data`), then verify SSH as `root` using the dedicated
 key:
 
 ```bash
 ssh -i ~/.ssh/cloud-weaver -o StrictHostKeyChecking=accept-new \
-  -o ConnectTimeout=15 ubuntu@<public_ip> 'docker --version && df -h /data'
+  -o ConnectTimeout=15 root@<public_ip> 'docker --version && df -h /data'
 ```
 
 If SSH is not ready yet, retry with backoff (up to ~5 min). Keep status

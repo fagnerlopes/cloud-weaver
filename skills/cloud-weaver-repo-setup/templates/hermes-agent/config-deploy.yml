@@ -15,7 +15,7 @@ proxy:
     timeout: 10
 
 ssh:
-  user: ubuntu
+  user: root
 
 registry:
   server: ghcr.io

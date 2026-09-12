@@ -11,13 +11,13 @@
 set -uo pipefail
 
 KEY=""
-VM_USER="ubuntu"
+VM_USER="root"
 IP=""
 OUT=""
 DRY_RUN=0
 
 usage() {
-  echo "Usage: $0 --ssh-key <path> --ip <addr> [--user ubuntu] [--output FILE] [--dry-run]" >&2
+  echo "Usage: $0 --ssh-key <path> --ip <addr> [--user root] [--output FILE] [--dry-run]" >&2
   exit 2
 }
 

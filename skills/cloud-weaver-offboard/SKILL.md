@@ -92,7 +92,7 @@ Aguardar a conclusão (a VM é parada e reiniciada — ~2 minutos).
 Verificar que o novo acesso funciona:
 
 ```bash
-ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" echo "SSH OK"
+ssh -i ~/.ssh/cloud-weaver root@"$public_ip" echo "SSH OK"
 ```
 
 ---
@@ -127,7 +127,7 @@ A chave de LLM (`ANTHROPIC_API_KEY` ou equivalente) fica em `~/.hermes/.env`
 usando o terminal web (`https://<hostname>`) ou via SSH com a nova chave:
 
 ```bash
-ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+ssh -i ~/.ssh/cloud-weaver root@"$public_ip" \
   "sudo nano /data/${env_name}/hermes_data/.env"
 ```
 
@@ -140,6 +140,6 @@ ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
 > Sua VM continua rodando — você tem créditos por mais um mês.
 > Para acessá-la da sua máquina de casa, use:
 >
->     ssh -i ~/.ssh/cloud-weaver ubuntu@<public_ip>
+>     ssh -i ~/.ssh/cloud-weaver root@<public_ip>
 >
 > Para deletar a VM quando quiser, acesse o painel da Locaweb Cloud.

@@ -48,43 +48,28 @@ jobs:
 
       # cloud-init on a fresh VM may take 60-90s to inject the SSH key pair.
       # Poll until key-auth works (up to 5 minutes) before handing off to Kamal.
+      # Locaweb Cloud VMs use 'root' as the default SSH user.
       - name: Wait for SSH key auth
         run: |
-          echo "=== SSH agent keys ==="
-          ssh-add -l || echo "(no keys in agent)"
-
-          echo "=== Tentando SSH verbose na primeira tentativa para diagnóstico ==="
-          ssh -v -o StrictHostKeyChecking=no -o BatchMode=yes \
-              -o ConnectTimeout=5 -o IdentitiesOnly=yes \
-              ubuntu@"$INFRA_WEB_IP" echo ok 2>&1 | head -60 || true
-
-          echo "=== Loop de espera ==="
-          SSH_USER=""
+          echo "Aguardando SSH na VM $INFRA_WEB_IP..."
           for i in $(seq 1 30); do
-            for user in ubuntu root; do
-              if ssh -o StrictHostKeyChecking=no \
-                     -o BatchMode=yes \
-                     -o ConnectTimeout=5 \
-                     -o IdentitiesOnly=yes \
-                     "${user}@${INFRA_WEB_IP}" echo ok 2>/dev/null; then
-                echo "SSH pronto como '${user}' (tentativa $i)"
-                SSH_USER="$user"
-                echo "SSH_USER=${user}" >> "$GITHUB_ENV"
-                break 2
-              fi
-            done
+            if ssh -o StrictHostKeyChecking=no \
+                   -o BatchMode=yes \
+                   -o ConnectTimeout=5 \
+                   -o IdentitiesOnly=yes \
+                   root@"$INFRA_WEB_IP" echo ok 2>/dev/null; then
+              echo "SSH pronto (tentativa $i)"
+              exit 0
+            fi
             echo "Tentativa $i/30: SSH ainda não pronto, aguardando 10s..."
             sleep 10
           done
-
-          if [ -z "$SSH_USER" ]; then
-            echo "=== Diagnóstico final (verbose) ==="
-            ssh -v -o StrictHostKeyChecking=no -o BatchMode=yes \
-                -o ConnectTimeout=5 -o IdentitiesOnly=yes \
-                ubuntu@"$INFRA_WEB_IP" echo ok 2>&1 | head -60 || true
-            echo "Timeout aguardando SSH" >&2
-            exit 1
-          fi
+          echo "=== Timeout — diagnóstico verbose ==="
+          ssh -v -o StrictHostKeyChecking=no -o BatchMode=yes \
+              -o ConnectTimeout=5 -o IdentitiesOnly=yes \
+              root@"$INFRA_WEB_IP" echo ok 2>&1 | head -80 || true
+          echo "Timeout aguardando SSH" >&2
+          exit 1
 
       - uses: crazy-max/ghaction-github-runtime@v3
 

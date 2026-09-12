@@ -63,7 +63,7 @@ Wait for explicit confirmation.
 ## 3. Run the deployer
 
 The deploy script is at `scripts/deploy-hermes-agent.py` (relative to this
-SKILL.md). SSH user is `ubuntu`; SSH key is `~/.ssh/cloud-weaver` (or
+SKILL.md). SSH user is `root`; SSH key is `~/.ssh/cloud-weaver` (or
 `~/.ssh/cloud-weaver-<env>`).
 
 ```bash
@@ -117,7 +117,7 @@ Agent has not been configured yet. Guide the user through the setup:
 4. Validate via SSH that the sentinel file was created:
 
    ```bash
-   ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+   ssh -i ~/.ssh/cloud-weaver root@"$public_ip" \
      "test -f /data/${env_name}/hermes_data/.setup-complete && echo OK || echo MISSING"
    ```
 
@@ -133,14 +133,14 @@ Once the sentinel file is confirmed, restart the hermes-agent container so it
 picks up any configuration written by `hermes setup`:
 
 ```bash
-ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+ssh -i ~/.ssh/cloud-weaver root@"$public_ip" \
   "docker compose -f /data/${env_name}/compose/compose.yaml restart hermes-agent"
 ```
 
 Wait 10 seconds, then check the last log lines to confirm it started cleanly:
 
 ```bash
-ssh -i ~/.ssh/cloud-weaver ubuntu@"$public_ip" \
+ssh -i ~/.ssh/cloud-weaver root@"$public_ip" \
   "docker compose -f /data/${env_name}/compose/compose.yaml logs hermes-agent --tail 20"
 ```
 

@@ -41,7 +41,7 @@ Wait for explicit confirmation.
 The deploy script lives at `scripts/deploy-hermes.py` (relative to this
 SKILL.md). Pure Python 3 stdlib. The SSH key is the dedicated
 `~/.ssh/cloud-weaver` (or `~/.ssh/cloud-weaver-<env>`) from
-`cloud-weaver-computer-setup`; SSH user is `ubuntu`.
+`cloud-weaver-computer-setup`; SSH user is `root`.
 
 ```bash
 python3 <this-skill-dir>/scripts/deploy-hermes.py \
@@ -87,7 +87,7 @@ Credentials are generated and live only in the VM file
 `/data/<env>/compose/.env` (600). Tell the user they can view them with:
 
 ```bash
-ssh -i ~/.ssh/cloud-weaver ubuntu@<public_ip> sudo cat /data/<env>/compose/.env
+ssh -i ~/.ssh/cloud-weaver root@<public_ip> sudo cat /data/<env>/compose/.env
 ```
 
 Remind them to change `WAHA_DASHBOARD_PASSWORD` and `WAHA_API_KEY` from

@@ -28,7 +28,7 @@ import tempfile
 from pathlib import Path
 
 NAME_RE = re.compile(r"^[a-z0-9_]+$")
-DEFAULT_SSH_USER = "ubuntu"
+DEFAULT_SSH_USER = "root"
 HEALTH_WAIT_SECONDS = 300
 
 

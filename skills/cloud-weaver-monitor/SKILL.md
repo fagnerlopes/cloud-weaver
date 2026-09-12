@@ -64,7 +64,7 @@ and uptime. Read the output and reason out loud:
 - Docker daemon down → `systemctl status docker` on the VM.
 
 Use the same SSH pattern (dedicated key `~/.ssh/cloud-weaver`, user
-`ubuntu`, `-o StrictHostKeyChecking=accept-new`) for any follow-up commands.
+`root`, `-o StrictHostKeyChecking=accept-new`) for any follow-up commands.
 Report findings to the user in plain PT-BR and recommend the next action.
 
 ## Rollback

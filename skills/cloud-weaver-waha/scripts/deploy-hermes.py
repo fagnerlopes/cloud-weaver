@@ -30,7 +30,7 @@ from pathlib import Path
 
 NAME_RE = re.compile(r"^[a-z0-9_]+$")
 PG_UID = 999  # postgres official image runs postgres as uid 999
-DEFAULT_SSH_USER = "ubuntu"
+DEFAULT_SSH_USER = "root"
 HEALTH_WAIT_SECONDS = 180
 
 
