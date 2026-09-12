@@ -127,6 +127,19 @@ gh secret set SSH_PRIVATE_KEY    --repo "$FULL_REPO" <<< "$SSH_KEY_CONTENT"
 **hermes-agent:**
 ```bash
 gh secret set TELEGRAM_BOT_TOKEN --repo "$FULL_REPO" <<< "$TELEGRAM_BOT_TOKEN"
+
+# Web terminal password (user is always "admin"). Never display the value in chat.
+TTYD_PASSWORD="$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")"
+gh secret set TTYD_PASSWORD --repo "$FULL_REPO" <<< "$TTYD_PASSWORD"
+
+# Save it to a 0600 file for the final report — not in the conversation.
+REPORT_FILE="$HOME/.cloud-weaver-${REPO_NAME}-report.json"
+python3 -c "
+import json, os
+data = {'ttyd_user': 'admin', 'ttyd_password': '$TTYD_PASSWORD'}
+open('$REPORT_FILE', 'w').write(json.dumps(data, indent=2))
+os.chmod('$REPORT_FILE', 0o600)
+"
 ```
 
 **waha:**
@@ -199,6 +212,8 @@ Return to start-cloud:
 - `APP_URL` — `https://${PUBLIC_IP}.nip.io`
 - `REPO_URL` — `https://github.com/${FULL_REPO}`
 - `SSH_KEY` — path to the generated key (`~/.ssh/cw-${REPO_NAME}`)
+- `REPORT_FILE` — `~/.cloud-weaver-${REPO_NAME}-report.json` (generated credentials,
+  to be shown once and deleted by start-cloud Step 7)
 
 ---
 

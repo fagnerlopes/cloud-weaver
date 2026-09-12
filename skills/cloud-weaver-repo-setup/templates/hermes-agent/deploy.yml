@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TTYD_PASSWORD: ${{ secrets.TTYD_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
 

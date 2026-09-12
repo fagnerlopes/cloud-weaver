@@ -183,12 +183,17 @@ Present in PT-BR:
 
 - **URL de acesso:** `https://<public-ip>.nip.io` — destacar visivelmente
 - **Repositório GitHub:** link `https://github.com/<user>/<repo-name>`
-- **Credenciais geradas** (waha only): read from `~/.cloud-weaver-<repo-name>-report.json`,
+- **Credenciais geradas:** read from `~/.cloud-weaver-<repo-name>-report.json`,
   show once, then delete the file:
   ```bash
   cat "$HOME/.cloud-weaver-${REPO_NAME}-report.json"
   rm -f "$HOME/.cloud-weaver-${REPO_NAME}-report.json"
   ```
+  - **hermes-agent:** the URL opens a web terminal protected by basic auth —
+    show `ttyd_user` / `ttyd_password` and tell the user to save them now, since
+    they are not recoverable afterwards. On first access the terminal opens the
+    Hermes setup wizard; after that it opens the Hermes CLI.
+  - **waha:** show `postgres_password` and `waha_api_key`.
 - **Próximos passos:**
   - Para atualizar o deploy: `git push` ao branch `main` do repositório ativa o pipeline
   - Para reprovisionar manualmente: `gh workflow run deploy.yml --repo <user>/<repo-name>`

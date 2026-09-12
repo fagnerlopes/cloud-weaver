@@ -11,11 +11,18 @@ proxy:
   host: <%= ENV['INFRA_WEB_IP'] %>.nip.io
 
 volumes:
-  - /data/preview/hermes_data:/data/hermes_data
+  # /opt/data is HERMES_HOME: config, .env, sessions, memories and skills.
+  # Backed by the VM's /data disk so it survives redeploys.
+  - /data/preview/hermes_data:/opt/data
 
 env:
   clear:
     ENV_NAME: preview
     TELEGRAM_ALLOWED_USERS: "@[TELEGRAM_USER_ID]"
+    # Carried over from the VPS recipe — required for the agent's in-container
+    # package installs and hook acceptance.
+    PIP_BREAK_SYSTEM_PACKAGES: 1
+    HERMES_ACCEPT_HOOKS: 1
   secret:
     - TELEGRAM_BOT_TOKEN
+    - TTYD_PASSWORD

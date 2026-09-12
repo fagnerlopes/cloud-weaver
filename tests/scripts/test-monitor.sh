@@ -114,6 +114,6 @@ for probe in "sudo docker ps -a" "df -h /data" "free -h" \
   expect "generates: $probe"          file_contains "$BASE/d3.out" "$probe"
 done
 expect "uses ded. ssh key"            file_contains "$BASE/d3.out" "-i $BASE/diag.key"
-expect "targets ubuntu@200.1.2.3"     file_contains "$BASE/d3.out" "ubuntu@200.1.2.3"
+expect "targets root@200.1.2.3"       file_contains "$BASE/d3.out" "root@200.1.2.3"
 
 summary "monitor"

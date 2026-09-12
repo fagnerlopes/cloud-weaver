@@ -5,7 +5,7 @@
 #
 #   --ssh-key <path>   Ed25519 private key (required)
 #   --ip <addr>        VM public IP (required)
-#   --user <name>      SSH user (default: ubuntu)
+#   --user <name>      SSH user (default: root — Locaweb Cloud VMs have no ubuntu user)
 #   --output <file>    Also write the collected diagnostics to this file
 #   --dry-run          Print the commands that would run instead of running them
 set -uo pipefail

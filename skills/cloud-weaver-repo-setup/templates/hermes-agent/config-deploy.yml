@@ -6,11 +6,13 @@ service: <%= ENV['REPO_NAME'] %>
 image: <%= ENV['REPO_FULL'] %>
 
 proxy:
-  app_port: 7681      # ttyd web terminal port
+  app_port: 7681      # nginx gate in front of the ttyd web terminal
   ssl: true
   forward_headers: false
   healthcheck:
-    path: /
+    # /cw-health is the one path nginx serves without basic auth — every other
+    # path answers 401, which the proxy would read as unhealthy.
+    path: /cw-health
     interval: 5
     timeout: 10
 
