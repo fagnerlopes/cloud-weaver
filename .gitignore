@@ -4,3 +4,6 @@ __pycache__/
 
 # Local OS files
 .DS_Store
+
+# Claude Code internal directory (worktrees, session files)
+.claude/
