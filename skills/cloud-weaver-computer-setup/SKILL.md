@@ -3,69 +3,101 @@ name: cloud-weaver-computer-setup
 description: >
   This skill should be used when the user asks to "set up my computer",
   "install dev tools", "set up my environment", or when the pre-flight check
-  reports NEEDS_COMPUTER_SETUP or a missing SSH key. It verifies gh, ssh, and
-  python3, and ensures a dedicated Ed25519 SSH key exists for CloudWeaver.
-  Works on Linux, macOS, and Windows (Git for Windows or WSL).
+  reports NEEDS_COMPUTER_SETUP. It detects the OS and gives platform-specific
+  install instructions for gh, ssh, and python3. Works on Linux, macOS,
+  Windows (native or WSL). Idempotent — safe to re-run.
 ---
 
 # Computer Setup
 
-**This is a sanity check, not a full install path.** CloudWeaver v2 needs
-`gh` (GitHub CLI), the OpenSSH client (`ssh`), and `python3`. Everything else
-runs in GitHub Actions — nothing heavy is required locally.
+CloudWeaver v2 needs three tools locally — everything else runs in GitHub
+Actions. The skill detects the OS and adapts instructions accordingly.
 
-Idempotent — safe to re-run.
+**Required tools:** `gh` (GitHub CLI) · `ssh` (OpenSSH client) · `python3`
 
-## 1. Check tools
+`git` and `jq` are **not** required: `git` operations run in CI, and `jq` is
+built into the `gh` CLI via `--jq`.
 
-Run via Python (cross-platform):
+---
+
+## Step 1 — Detect OS
 
 ```python
-import shutil
-missing = [t for t in ["gh", "ssh", "python3"] if not shutil.which(t)]
-print("Missing:", missing or "none")
+import platform, subprocess, os
+system = platform.system()           # "Linux", "Darwin", "Windows"
+# Detect WSL (Linux kernel with Microsoft in /proc/version)
+is_wsl = system == "Linux" and "microsoft" in open("/proc/version").read().lower() if system == "Linux" else False
+print(f"OS: {system}{'  (WSL)' if is_wsl else ''}")
 ```
 
-Or in a shell:
+---
+
+## Step 2 — Install missing tools
+
+Give the user the right commands for their platform. Only mention what is
+actually missing (check with `shutil.which` first).
+
+### Linux / WSL (Ubuntu · Debian)
 
 ```bash
-# Linux / macOS / Git Bash
-command -v gh && command -v ssh && command -v python3
+# gh — official GitHub CLI repo
+type -p curl >/dev/null || sudo apt install curl -y
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+  | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] \
+  https://cli.github.com/packages stable main" \
+  | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update && sudo apt install gh -y
+
+# ssh + python3 (usually pre-installed; install if missing)
+sudo apt install -y openssh-client python3
 ```
 
-If any are missing, tell the user to install them:
+### macOS
 
-### `gh` (GitHub CLI)
-- **macOS:** `brew install gh`
-- **Debian/Ubuntu:** `sudo apt install gh`
-- **Windows:** `winget install --id GitHub.cli` — or download from https://cli.github.com
+```bash
+brew install gh python
+# ssh ships with macOS — no install needed
+```
 
-### `ssh` (OpenSSH client)
-- **macOS / Linux:** already present; `sudo apt install openssh-client` if missing
-- **Windows:** built-in on Windows 10+ (`Settings → Optional features → OpenSSH Client`)
+### Windows (native — PowerShell)
 
-### `python3`
-- **macOS:** `brew install python`
-- **Debian/Ubuntu:** `sudo apt install python3`
-- **Windows:** `winget install --id Python.Python.3` — or download from https://python.org
+```powershell
+# All three via winget
+winget install --id GitHub.cli       # gh
+winget install --id Python.Python.3  # python3
+# ssh: built-in on Windows 10+ (Settings → Apps → Optional features → OpenSSH Client)
+```
 
-> **Windows without WSL:** install **Git for Windows** (https://git-scm.com/download/win) —
-> it provides Git, Git Bash, and SSH in a single installer. Then add Python from python.org.
-> `jq` is **not** required — CloudWeaver v2 uses `gh`'s built-in `--jq` flag.
+> **Note:** if Claude Code is running inside WSL, use the Linux instructions
+> above — the Windows native instructions apply only when running Claude Code
+> directly in PowerShell or CMD.
 
-## 2. GitHub authentication
+---
+
+## Step 3 — GitHub authentication
 
 ```bash
 gh auth status
 ```
 
-If not authenticated, ask the user to run `gh auth login` in their OS
-terminal and return to the session.
+If not authenticated, ask the user to run in their terminal:
 
-## 3. Re-run the pre-flight
+```bash
+gh auth login
+```
 
-After setup, re-run `cloud-weaver-pre-flight-check` to confirm the
-environment is ready before proceeding.
+Then return to the session.
+
+---
+
+## Step 4 — Re-run the pre-flight
+
+After setup, re-run `cloud-weaver-pre-flight-check` to confirm all tools are
+present and GitHub is authenticated before proceeding.
+
+---
 
 ## Bundled Resources
 
