@@ -23,8 +23,8 @@ Três segredos ficaram na máquina do evento. Cada um tem um desligamento remoto
 | Segredo | Onde ficou | Ação |
 |---------|-----------|------|
 | `LOCAWEB_API_KEY` / `LOCAWEB_API_SECRET` | Shell da máquina do evento | Regerar no painel → invalida imediatamente |
-| Chave SSH privada | `~/.ssh/cloud-weaver*` na máquina do evento | `resetSSHKeyForVirtualMachine` → invalida sem precisar da máquina |
-| Chave de LLM (`ANTHROPIC_API_KEY` ou equivalente) | `~/.hermes/.env` na VM | Rotacionar no painel do provedor |
+| Chave SSH privada | `~/.ssh/cw-<repo-name>` na máquina do evento | Regenerar + atualizar GitHub Secret `SSH_PRIVATE_KEY` → chave antiga não abre mais a VM |
+| Chave de LLM (`ANTHROPIC_API_KEY` ou equivalente) | `.env` dentro da VM | Rotacionar no painel do provedor |
 
 Execute os quatro passos em ordem. Não pule nenhum.
 
@@ -63,36 +63,47 @@ Gerar um novo par Ed25519 local e registrar via API do CloudStack. A VM é parad
 brevemente, a chave é trocada, e a VM é reiniciada — sem acesso físico à máquina do
 evento.
 
-### 2a. Gerar o novo par
+### 2a. Identificar as chaves per-repo
+
+Em v2 cada repositório tem uma chave dedicada `~/.ssh/cw-<repo-name>`. Listar
+as chaves presentes:
 
 ```bash
-rm -f ~/.ssh/cloud-weaver ~/.ssh/cloud-weaver.pub
-ssh-keygen -t ed25519 -f ~/.ssh/cloud-weaver -C "cloud-weaver" -N ""
-chmod 600 ~/.ssh/cloud-weaver
-chmod 644 ~/.ssh/cloud-weaver.pub
+ls ~/.ssh/cw-* 2>/dev/null || echo "Nenhuma chave cloud-weaver encontrada"
 ```
 
-*(Sobrescreve a chave existente — a chave antiga, na máquina do evento, não abre mais a VM.)*
+Perguntar o `REPO_NAME` de cada deployment que o participante instalou (pode
+ser mais de um). O Passo 2b abaixo trata cada repositório individualmente.
 
-### 2b. Rodar a rotação via vm-provision.py
+### 2b. Atualizar o GitHub Secret com a nova chave
+
+Em v2 cada repositório guarda sua própria chave SSH como GitHub Secret
+(`SSH_PRIVATE_KEY`). Perguntar ao participante o nome do repositório
+(`REPO_NAME`, ex: `meu-hermes`) e rodar:
 
 ```bash
-VM_PROVISION="$(python3 -c "import importlib.util, pathlib; \
-  p = pathlib.Path.home() / '.claude' / 'plugins'; \
-  print(list(p.glob('*/cloud-weaver/*/skills/cloud-weaver-vm-setup/scripts/vm-provision.py'))[0])")"
+GITHUB_LOGIN="$(gh api user --jq .login)"
+FULL_REPO="${GITHUB_LOGIN}/${REPO_NAME}"
+SSH_KEY="$HOME/.ssh/cw-${REPO_NAME}"
 
-python3 "$VM_PROVISION" rotate-ssh-key \
-  --env-name "$env_name" \
-  --ssh-pubkey "$HOME/.ssh/cloud-weaver.pub" \
-  --output "$HOME/.cloud-weaver-${env_name}-rotate.json"
+# Generate a new per-repo key replacing the old one
+rm -f "$SSH_KEY" "$SSH_KEY.pub"
+ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "cloudweaver-${REPO_NAME}"
+chmod 600 "$SSH_KEY"
+
+# Update the secret in GitHub — the pipeline will use the new key on next run
+gh secret set SSH_PRIVATE_KEY --repo "$FULL_REPO" < "$SSH_KEY"
+echo "Secret SSH_PRIVATE_KEY atualizado em $FULL_REPO"
 ```
 
-Aguardar a conclusão (a VM é parada e reiniciada — ~2 minutos).
+A VM não precisa ser reiniciada: a nova chave pública deve ser adicionada ao
+`authorized_keys` da VM. Fazer isso via SSH ainda com a chave antiga (se
+disponível), ou orientar o participante a fazer pelo console da Locaweb Cloud.
 
 Verificar que o novo acesso funciona:
 
 ```bash
-ssh -i ~/.ssh/cloud-weaver root@"$public_ip" echo "SSH OK"
+ssh -i "$HOME/.ssh/cw-${REPO_NAME}" root@"$public_ip" echo "SSH OK"
 ```
 
 ---
@@ -103,12 +114,12 @@ Remover os arquivos do cloud-weaver desta máquina (a **nova** máquina, se for
 uma adoção; a **mesma** se for apenas limpeza pós-workshop).
 
 ```bash
-# Remove SSH keys
-rm -f ~/.ssh/cloud-weaver ~/.ssh/cloud-weaver.pub \
-       ~/.ssh/cloud-weaver-"${env_name}" ~/.ssh/cloud-weaver-"${env_name}".pub
+# Remove all per-repo SSH keys (v2 pattern: cw-<repo-name>)
+rm -f ~/.ssh/cw-* 
 
-# Remove credential files
-rm -f ~/.cloud-weaver-"${env_name}"-*.json
+# Remove session and report files
+rm -f ~/.cloud-weaver-*-session.json
+rm -f ~/.cloud-weaver-*-report.json
 
 # Remove the cloud-weaver block from AGENTS.md (if present)
 if [ -f AGENTS.md ]; then
@@ -116,7 +127,7 @@ if [ -f AGENTS.md ]; then
 fi
 ```
 
-*(No cenário de adoção — rodar na máquina de casa — o Passo 2a já criou o novo par; não remover.)*
+*(No cenário de adoção — rodar na máquina de casa — o Passo 2b já criou novos pares; não remover as chaves novas.)*
 
 ---
 
@@ -140,6 +151,6 @@ ssh -i ~/.ssh/cloud-weaver root@"$public_ip" \
 > Sua VM continua rodando — você tem créditos por mais um mês.
 > Para acessá-la da sua máquina de casa, use:
 >
->     ssh -i ~/.ssh/cloud-weaver root@<public_ip>
+>     ssh -i ~/.ssh/cw-<repo-name> root@<public_ip>
 >
-> Para deletar a VM quando quiser, acesse o painel da Locaweb Cloud.
+> Para deletar a VM e parar a cobrança: diga "quero fazer o teardown" em uma nova sessão.

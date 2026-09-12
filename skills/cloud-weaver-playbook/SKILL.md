@@ -44,8 +44,9 @@ invocable entry point in every supported agent. Use the Skill tool to invoke
 `start-cloud` and follow it — do not reimplement the flow from memory.
 
 Summary of what that skill does: pre-flight check → recipe catalog → one
-question at a time → plan + explicit confirmation → `cloud-weaver-vm-setup` →
-recipe skill → `cloud-weaver-monitor` → final report.
+question at a time → plan + explicit confirmation → `cloud-weaver-repo-setup`
+(creates GitHub repo + sets secrets + triggers GHA pipeline via
+`locaweb-cloud-provision`) → final report.
 
 ---
 
@@ -58,10 +59,9 @@ Execute skills by using the Skill tool to invoke them and following the instruct
 | `start-cloud` | The installation flow — the entry point users type | ✅ |
 | `cloud-weaver-pre-flight-check` | Version check + environment validation (gh auth, SSH, credentials, sensitive files) | ✅ |
 | `cloud-weaver-computer-setup` | Install/verify `gh`, `ssh`, `jq` and the Ed25519 SSH key | ✅ |
-| `cloud-weaver-vm-setup` | Provision VM + network + firewall on the Locaweb Cloud (idempotent) | ✅ |
-| `cloud-weaver-waha` | Recipe: WAHA (WhatsApp HTTP API + PostgreSQL) | ✅ |
-| `cloud-weaver-hermes-agent` | Recipe: Hermes Agent (Nous Research, Telegram) | ✅ |
-| `cloud-weaver-monitor` | Health check + polling + rollback | ✅ |
+| `cloud-weaver-repo-setup` | Create GitHub repo + generate Kamal/GHA config + set secrets + trigger pipeline | ✅ |
+| `cloud-weaver-monitor` | Post-deploy health check: HTTP poll + SSH diagnostics | ✅ |
+| `cloud-weaver-teardown` | Destroy VM + network + keypair via GHA workflow; optionally delete the GitHub repo | ✅ |
 | `cloud-weaver-offboard` | Post-workshop offboarding: credential rotation + local cleanup | ✅ |
 | `cloud-weaver-coolify` | Recipe: Coolify (PaaS self-hosted) | 🔜 not implemented |
 | `cloud-weaver-jitsi` | Recipe: Jitsi Meet | 🔜 not implemented |

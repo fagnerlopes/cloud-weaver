@@ -6,6 +6,16 @@ Enquanto estivermos na geração 0.x.y: incrementar o minor (x+1) para mudanças
 
 Após bumpar a versão em `plugin.json`, rodar `scripts/stamp-version.sh` para propagar a marcação `CLOUD_WEAVER_VERSION` no `skills/cloud-weaver-pre-flight-check/SKILL.md`.
 
+## Projetos relacionados
+
+CloudWeaver existe dentro de um ecossistema de ferramentas Locaweb. Ao trabalhar em qualquer skill, considere como ela se relaciona com estes projetos:
+
+- **Cofounder** — `~/workspaces/workspace-locaweb/repositories/cofounder/`
+  Plugin de skills para desenvolvimento de aplicações, criação de infraestrutura e deploy no Locaweb Cloud (Apache CloudStack). Tem estrutura análoga ao CloudWeaver (`cofounder-<x>` skills, mesmo mecanismo de distribuição via `npx skills`). É o projeto de referência para padrões de skills e arquitetura geral.
+
+- **locaweb-cloud-provision** — `~/workspaces/workspace-locaweb/repositories/locaweb-cloud-provision/`
+  Ferramenta especialista em provisionamento de VMs no Locaweb Cloud (Apache CloudStack). Exposta como GitHub Actions reusable workflow (`locaweb/locaweb-cloud-provision/.github/workflows/provision.yml@v1`). O CloudWeaver v2 consome este workflow nos templates de `deploy.yml` gerados por `cloud-weaver-repo-setup`. Consultar sua documentação antes de alterar qualquer lógica de provisionamento.
+
 ## Convenções de código e saída
 
 - Toda saída ao usuário em **português brasileiro (PT-BR)**.
