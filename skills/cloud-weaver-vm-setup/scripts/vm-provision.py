@@ -116,6 +116,17 @@ _MOCK_CREATE_EFFECTS = {
                                       "issourcenat": False,
                                       "isstaticnat": False,
                                       "virtualmachineid": None}),
+    # Stop/start update the VM's state in subsequent listVirtualMachines responses.
+    "stopVirtualMachine": ("listVirtualMachines", "virtualmachine",
+                           lambda p: {"id": p.get("id", ["vm1"])[0],
+                                      "name": "cr-hermes-vm",
+                                      "state": "Stopped",
+                                      "nic": [{"ipaddress": "10.0.0.5"}]}),
+    "startVirtualMachine": ("listVirtualMachines", "virtualmachine",
+                            lambda p: {"id": p.get("id", ["vm1"])[0],
+                                       "name": "cr-hermes-vm",
+                                       "state": "Running",
+                                       "nic": [{"ipaddress": "10.0.0.5"}]}),
 }
 _MOCK_IP_UPDATE_AFTER = ("enableStaticNat", "publicipaddress")
 
@@ -163,8 +174,14 @@ class MockTransport:
             if command == list_cmd and create_cmd in self.called:
                 entries = payload.setdefault(key, [])
                 entry = builder(params)
-                if command == "listVirtualMachines" and \
-                        any(v.get("id") == entry["id"] for v in entries):
+                if command == "listVirtualMachines":
+                    # Update state of an existing VM in-place; append if new.
+                    for v in entries:
+                        if v.get("id") == entry["id"]:
+                            v["state"] = entry["state"]
+                            break
+                    else:
+                        entries.append(entry)
                     continue
                 entries.append(entry)
 
@@ -404,7 +421,12 @@ def ensure_public_ip(client, net_id, vm_id):
     return ip
 
 
-def ensure_firewall(client, ip_id, ports):
+def ensure_firewall(client, ip_id, ports, cidrlist="0.0.0.0/0"):
+    """Open TCP ports on the given public IP.
+
+    cidrlist defaults to 0.0.0.0/0 (open to world); pass a specific CIDR
+    when you want to restrict a port to a known source range.
+    """
     existing = find_firewall_rules(client, ip_id)
     existing_ports = {
         (int(r.get("startport", 0)), int(r.get("endport", 0))) for r in existing
@@ -413,7 +435,7 @@ def ensure_firewall(client, ip_id, ports):
         if (port, port) in existing_ports:
             continue
         client.call("createFirewallRule", ipaddressid=ip_id, protocol="TCP",
-                    startport=port, endport=port, cidrlist="0.0.0.0/0")
+                    startport=port, endport=port, cidrlist=cidrlist)
 
 
 def ensure_data_disk(client, disk_name, zone_id, disk_gb, vm_id, network_name):
@@ -431,6 +453,67 @@ def ensure_data_disk(client, disk_name, zone_id, disk_gb, vm_id, network_name):
     if not vol or not vol.get("virtualmachineid"):
         client.call("attachVolume", id=vol_id, virtualmachineid=vm_id)
     return vol_id
+
+
+def wait_for_vm_state(client, vm_id, target_state, timeout=300, poll=5):
+    """Poll listVirtualMachines until the VM reaches target_state or timeout."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        data = client.call("listVirtualMachines", id=vm_id, filter="id,state")
+        vms = data.get("virtualmachine") or []
+        if vms and vms[0].get("state") == target_state:
+            return
+        time.sleep(poll)
+    raise CloudStackError(
+        "VM {} did not reach state '{}' within {}s".format(
+            vm_id, target_state, timeout))
+
+
+def rotate_ssh_key(client, cfg):
+    """Rotate the SSH keypair on a running VM.
+
+    Sequence required by the CloudStack API:
+    1. Stop VM  (state must be Stopped before reset)
+    2. Register new keypair
+    3. resetSSHKeyForVirtualMachine
+    4. Start VM
+
+    Returns a dict with new_keypair_name and vm_id.
+    """
+    env_name = cfg["env_name"]
+    network_name = "cr-{}".format(env_name)
+    vm_name = "{}-vm".format(network_name)
+
+    # Resolve VM id
+    data = client.call("listVirtualMachines", name=vm_name, filter="id,name,state")
+    vms = data.get("virtualmachine") or []
+    if not vms:
+        raise CloudStackError("VM '{}' not found".format(vm_name))
+    vm_id = vms[0]["id"]
+
+    # 1. Stop
+    print("Stopping VM {}...".format(vm_name))
+    client.call("stopVirtualMachine", id=vm_id)
+    wait_for_vm_state(client, vm_id, "Stopped")
+
+    # 2. Register new keypair (reuse same name; idempotent if key already registered)
+    new_keypair_name = "{}-key".format(network_name)
+    ensure_ssh_keypair(client, new_keypair_name, cfg["public_key"])
+
+    # 3. Reset SSH key (VM must be Stopped)
+    client.call("resetSSHKeyForVirtualMachine", id=vm_id, keypair=new_keypair_name)
+
+    # 4. Start
+    print("Starting VM {}...".format(vm_name))
+    client.call("startVirtualMachine", id=vm_id)
+    wait_for_vm_state(client, vm_id, "Running")
+
+    return {
+        "env_name": env_name,
+        "vm_id": vm_id,
+        "new_keypair_name": new_keypair_name,
+        "status": "rotated",
+    }
 
 
 def vm_internal_ip(client, vm_id):
@@ -500,7 +583,7 @@ def resolve_endpoint(args):
     return explicit
 
 
-def main():
+def _build_provision_parser():
     parser = argparse.ArgumentParser(
         description="Provision a single VM on Locaweb Cloud (idempotent)")
     parser.add_argument("--env-name", required=True,
@@ -514,23 +597,22 @@ def main():
                         help="Extra TCP ports for firewall (comma separated); "
                              "SSH 22 is always open")
     parser.add_argument("--ssh-pubkey",
-                        help="Path to the Ed25519 public key (default: "
-                             "~/.ssh/cloud-weaver-<env>.pub or ~/.ssh/cloud-weaver.pub)")
+                        help="Path to the Ed25519 public key")
     parser.add_argument("--endpoint", help="CloudStack API endpoint URL "
                                            "(default: LOCAWEB_API_ENDPOINT)")
     parser.add_argument("--output", help="Write JSON output to a file")
-    args = parser.parse_args()
+    return parser
 
+
+def _run_provision(args):
+    """Execute the provision subcommand."""
     try:
         cfg = build_cfg(args)
-
         mock_fixtures = os.environ.get("LOCAWEB_MOCK_FIXTURES")
         if mock_fixtures:
             transport = MockTransport(
                 mock_fixtures, os.environ.get("LOCAWEB_MOCK_LOG", ""))
-            api_key = "mock-key"
-            secret = "mock-secret"
-            endpoint = ""
+            api_key, secret, endpoint = "mock-key", "mock-secret", ""
         else:
             transport = None
             endpoint = resolve_endpoint(args)
@@ -539,10 +621,7 @@ def main():
             if not api_key or not secret:
                 raise CloudStackError(
                     "LOCAWEB_API_KEY and LOCAWEB_API_SECRET must be set")
-
-        client = CloudStackClient(endpoint, api_key, secret,
-                                  transport=transport)
-
+        client = CloudStackClient(endpoint, api_key, secret, transport=transport)
         results = provision(client, cfg)
         out = json.dumps(results, indent=2, ensure_ascii=False)
         if args.output:
@@ -554,6 +633,73 @@ def main():
     except CloudStackError as exc:
         print("FATAL: {}".format(exc), file=sys.stderr)
         sys.exit(1)
+
+
+def _run_rotate_ssh_key(args):
+    """Execute the rotate-ssh-key subcommand."""
+    try:
+        env_name = args.env_name.strip()
+        if not NAME_RE.match(env_name):
+            raise CloudStackError(
+                "Invalid env_name '{}' — only [a-z0-9_]".format(env_name))
+        pubkey_path = os.path.expanduser(args.ssh_pubkey)
+        if not os.path.exists(pubkey_path):
+            raise CloudStackError(
+                "SSH public key not found: {}".format(pubkey_path))
+        with open(pubkey_path, "r") as f:
+            public_key = f.read().strip()
+        cfg = {
+            "env_name": env_name,
+            "public_key": public_key,
+        }
+        mock_fixtures = os.environ.get("LOCAWEB_MOCK_FIXTURES")
+        if mock_fixtures:
+            transport = MockTransport(
+                mock_fixtures, os.environ.get("LOCAWEB_MOCK_LOG", ""))
+            api_key, secret, endpoint = "mock-key", "mock-secret", ""
+        else:
+            transport = None
+            endpoint = resolve_endpoint(args)
+            api_key = os.environ.get("LOCAWEB_API_KEY", "")
+            secret = os.environ.get("LOCAWEB_API_SECRET", "")
+            if not api_key or not secret:
+                raise CloudStackError(
+                    "LOCAWEB_API_KEY and LOCAWEB_API_SECRET must be set")
+        client = CloudStackClient(endpoint, api_key, secret, transport=transport)
+        result = rotate_ssh_key(client, cfg)
+        out = json.dumps(result, indent=2, ensure_ascii=False)
+        if getattr(args, "output", None):
+            with open(args.output, "w") as f:
+                f.write(out + "\n")
+        print("SSH key rotated: {}".format(out))
+    except CloudStackError as exc:
+        print("FATAL: {}".format(exc), file=sys.stderr)
+        sys.exit(1)
+
+
+def main():
+    # Subcommand dispatch (backward-compat: no subcommand treated as provision).
+    argv = sys.argv[1:]
+    if argv and argv[0] == "rotate-ssh-key":
+        parser = argparse.ArgumentParser(
+            description="Rotate the SSH keypair on a provisioned VM "
+                        "(stop → reset → start)")
+        parser.add_argument("--env-name", required=True,
+                            help="Environment name (regex [a-z0-9_])")
+        parser.add_argument("--ssh-pubkey", required=True,
+                            help="Path to the NEW Ed25519 public key to register")
+        parser.add_argument("--endpoint",
+                            help="CloudStack API endpoint URL "
+                                 "(default: LOCAWEB_API_ENDPOINT)")
+        parser.add_argument("--output", help="Write JSON output to a file")
+        args = parser.parse_args(argv[1:])
+        _run_rotate_ssh_key(args)
+    else:
+        # Strip optional "provision" prefix for forward-compat.
+        if argv and argv[0] == "provision":
+            argv = argv[1:]
+        args = _build_provision_parser().parse_args(argv)
+        _run_provision(args)
 
 
 def provision(client, cfg):

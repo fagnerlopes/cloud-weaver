@@ -115,4 +115,15 @@ expect "mounts /data"                  file_contains "$USERDATA" '/data'
 expect "formats ext4 data disk"        file_contains "$USERDATA" "mkfs.ext4"
 expect "enable fail2ban"               file_contains "$USERDATA" "fail2ban"
 
+echo "== vm-provision: rotate-ssh-key subcommand =="
+prov rot1 vm-provision-existing.json \
+  rotate-ssh-key --env-name hermes --ssh-pubkey "$BASE/testkey.pub"
+expect "rotate exit 0"                          test "$(prov_rc rot1)" = 0
+expect "rotate ran stopVirtualMachine"          file_contains "$BASE/rot1.log" "stopVirtualMachine"
+expect "rotate ran resetSSHKeyForVirtualMachine" file_contains "$BASE/rot1.log" "resetSSHKeyForVirtualMachine"
+expect "rotate ran startVirtualMachine"         file_contains "$BASE/rot1.log" "startVirtualMachine"
+expect "rotate output has status rotated"       file_contains "$BASE/rot1.out" "rotated"
+expect "rotate did NOT run deployVirtualMachine" refute test "$(grep -c deployVirtualMachine "$BASE/rot1.log" 2>/dev/null || echo 0)" -gt 0
+expect "rotate did NOT run createNetwork"        refute test "$(grep -c createNetwork "$BASE/rot1.log" 2>/dev/null || echo 0)" -gt 0
+
 summary "vm-provision"
