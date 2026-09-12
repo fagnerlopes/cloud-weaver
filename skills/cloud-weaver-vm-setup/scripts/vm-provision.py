@@ -67,13 +67,19 @@ def build_signed_query(command, params, api_key, secret):
     IMPORTANT: CloudStack requires the canonical string to be lowercased
     before computing the HMAC-SHA1 signature (the request itself is sent
     with the original mixed-case keys/values).
+
+    Values are URL-encoded with quote(safe='') so spaces become %20 -- not
+    quote_plus ('+' for spaces). Locaweb's CloudStack re-encodes decoded
+    values as %20 when recomputing the signature, so a '+' in a canonical
+    value (e.g. an SSH public key, which contains spaces) produces a 401
+    'unable to verify user credentials and/or request signature'.
     """
     q = dict(params)
     q["command"] = command
     q["response"] = "json"
     q["apiKey"] = api_key
     canonical = "&".join(
-        "{}={}".format(k, urllib.parse.quote_plus(str(v)))
+        "{}={}".format(k, urllib.parse.quote(str(v), safe=""))
         for k, v in sorted(q.items())
     )
     # CloudStack signing spec: lowercase the full canonical string before HMAC.
