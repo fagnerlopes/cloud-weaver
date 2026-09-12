@@ -99,6 +99,10 @@ class UrllibTransport:
 # the matching *list* responses, mirroring real CloudStack state transitions.
 _MOCK_CREATE_EFFECTS = {
     # (create command) -> ((list command), (list entries key), entry builder)
+    # Creating a network makes CloudStack auto-assign a source NAT IP.
+    "createNetwork": ("listPublicIpAddresses", "publicipaddress",
+                      lambda p: {"id": "ip-snat1", "ipaddress": "200.1.2.3",
+                                 "issourcenat": True}),
     "deployVirtualMachine": ("listVirtualMachines", "virtualmachine",
                              lambda p: {"id": "vm1",
                                         "name": (p.get("name") or ["cr-hermes-vm"])[0],
@@ -107,15 +111,12 @@ _MOCK_CREATE_EFFECTS = {
     "createVolume": ("listVolumes", "volume",
                      lambda p: {"id": "vol1", "name": p["name"][0],
                                 "virtualmachineid": "vm1", "state": "Ready"}),
-    "createFirewallRule": ("listFirewallRules", "firewallrule",
-                           lambda p: {"id": "fw-{}".format(p["startport"][0]),
-                                      "startport": int(p["startport"][0]),
-                                      "endport": int(p["endport"][0])}),
-    "associateIpAddress": ("listPublicIpAddresses", "publicipaddress",
-                           lambda p: {"id": "ip1", "ipaddress": "200.1.2.3",
-                                      "issourcenat": False,
-                                      "isstaticnat": False,
-                                      "virtualmachineid": None}),
+    "createPortForwardingRule": ("listPortForwardingRules", "portforwardingrule",
+                                 lambda p: {"id": "pf-{}".format(p["publicport"][0]),
+                                            "publicport": int(p["publicport"][0]),
+                                            "privateport": int(p["privateport"][0]),
+                                            "virtualmachineid": p.get("virtualmachineid",
+                                                                       ["vm1"])[0]}),
     # Stop/start update the VM's state in subsequent listVirtualMachines responses.
     "stopVirtualMachine": ("listVirtualMachines", "virtualmachine",
                            lambda p: {"id": p.get("id", ["vm1"])[0],
@@ -128,7 +129,6 @@ _MOCK_CREATE_EFFECTS = {
                                        "state": "Running",
                                        "nic": [{"ipaddress": "10.0.0.5"}]}),
 }
-_MOCK_IP_UPDATE_AFTER = ("enableStaticNat", "publicipaddress")
 
 
 class MockTransport:
@@ -185,11 +185,7 @@ class MockTransport:
                     continue
                 entries.append(entry)
 
-        if command == "listPublicIpAddresses" and "enableStaticNat" in self.called:
-            for ip in payload.setdefault("publicipaddress", []):
-                if ip.get("id") == "ip1":
-                    ip["isstaticnat"] = True
-                    ip["virtualmachineid"] = "vm1"
+        # No post-create IP mutations needed (port forwarding, not static NAT).
 
 
 class CloudStackClient:
@@ -322,27 +318,16 @@ def find_volume(client, name, zone_id):
     return None
 
 
-def find_public_ip(client, network_id, vm_id=None):
-    """Find a non-source-NAT IP; if vm_id given, prefer the one NATed to it."""
+def find_source_nat_ip(client, network_id):
+    """Return the source NAT IP for the isolated network (auto-assigned by CloudStack)."""
     data = client.call("listPublicIpAddresses", associatednetworkid=network_id,
-                       filter="id,ipaddress,issourcenat,isstaticnat,virtualmachineid")
-    ips = [ip for ip in (data.get("publicipaddress") or [])
-           if not ip.get("issourcenat", False)]
-    for ip in ips:
-        if vm_id and ip.get("virtualmachineid") == vm_id:
-            return ip
-    for ip in ips:
-        if not ip.get("isstaticnat", False):
-            return ip
-    if ips:
-        return ips[0]
-    return None
-
-
-def find_firewall_rules(client, ip_id):
-    data = client.call("listFirewallRules", ipaddressid=ip_id,
-                       filter="id,startport,endport")
-    return data.get("firewallrule") or []
+                       issourcenat=True,
+                       filter="id,ipaddress,issourcenat")
+    ips = data.get("publicipaddress") or []
+    if not ips:
+        raise CloudStackError(
+            "No source NAT IP found for network {}".format(network_id))
+    return ips[0]
 
 
 def wait_vm_running(client, vm_id, vm_name, zone_id, timeout=VM_RUNNING_TIMEOUT):
@@ -410,32 +395,19 @@ def ensure_vm(client, vm_name, plan, template_id, zone_id, net_id, keypair_name,
     return vm_id
 
 
-def ensure_public_ip(client, net_id, vm_id):
-    ip = find_public_ip(client, net_id, vm_id=vm_id)
-    if not ip:
-        data = client.call("associateIpAddress", networkid=net_id)
-        ip = data
-    if not ip.get("isstaticnat", False):
-        client.call("enableStaticNat", ipaddressid=ip["id"],
-                    virtualmachineid=vm_id)
-    return ip
-
-
-def ensure_firewall(client, ip_id, ports, cidrlist="0.0.0.0/0"):
-    """Open TCP ports on the given public IP.
-
-    cidrlist defaults to 0.0.0.0/0 (open to world); pass a specific CIDR
-    when you want to restrict a port to a known source range.
-    """
-    existing = find_firewall_rules(client, ip_id)
-    existing_ports = {
-        (int(r.get("startport", 0)), int(r.get("endport", 0))) for r in existing
-    }
+def ensure_port_forwarding(client, ip_id, vm_id, ports):
+    """Open TCP ports via port-forwarding rules on the source NAT IP."""
+    data = client.call("listPortForwardingRules", ipaddressid=ip_id,
+                       filter="id,publicport,privateport,virtualmachineid")
+    existing = {int(r.get("publicport", 0))
+                for r in (data.get("portforwardingrule") or [])}
     for port in sorted(ports):
-        if (port, port) in existing_ports:
+        if port in existing:
             continue
-        client.call("createFirewallRule", ipaddressid=ip_id, protocol="TCP",
-                    startport=port, endport=port, cidrlist=cidrlist)
+        client.call("createPortForwardingRule",
+                    ipaddressid=ip_id, protocol="TCP",
+                    publicport=port, privateport=port,
+                    virtualmachineid=vm_id)
 
 
 def ensure_data_disk(client, disk_name, zone_id, disk_gb, vm_id, network_name):
@@ -574,12 +546,12 @@ def build_cfg(args):
     return cfg
 
 
+DEFAULT_ENDPOINT = "https://painel-cloud.locaweb.com.br/client/api"
+
+
 def resolve_endpoint(args):
     explicit = args.endpoint or os.environ.get("LOCAWEB_API_ENDPOINT")
-    if not explicit:
-        raise CloudStackError(
-            "No API endpoint. Set LOCAWEB_API_ENDPOINT or pass --endpoint.")
-    return explicit
+    return explicit or DEFAULT_ENDPOINT
 
 
 def _build_provision_parser():
@@ -720,8 +692,10 @@ def provision(client, cfg):
     vm_id = ensure_vm(client, vm_name, cfg["plan"], template_id, zone_id,
                       net_id, keypair_name, userdata_path, zone_name)
 
-    ip = ensure_public_ip(client, net_id, vm_id)
-    ensure_firewall(client, ip["id"], ports)
+    # Use the source NAT IP (auto-assigned to the network) with port forwarding
+    # instead of allocating a second static NAT IP — saves one public IP per env.
+    source_nat_ip = find_source_nat_ip(client, net_id)
+    ensure_port_forwarding(client, source_nat_ip["id"], vm_id, ports)
 
     disk_name = "{}-data".format(network_name)
     vol_id = ensure_data_disk(client, disk_name, zone_id, cfg["disk_gb"],
@@ -737,13 +711,14 @@ def provision(client, cfg):
         "keypair_name": keypair_name,
         "vm_name": vm_name,
         "vm_id": vm_id,
-        "public_ip": ip.get("ipaddress", ip["id"]),
-        "public_ip_id": ip.get("id", ""),
+        "public_ip": source_nat_ip.get("ipaddress", source_nat_ip["id"]),
+        "public_ip_id": source_nat_ip.get("id", ""),
         "internal_ip": internal_ip,
         "firewall_ports": ports,
         "data_disk_name": disk_name,
         "data_disk_id": vol_id,
-        "hero_url": "http://{}.nip.io".format(ip.get("ipaddress", "")),
+        "hero_url": "https://{}.nip.io".format(
+            source_nat_ip.get("ipaddress", "")),
     }
 
 

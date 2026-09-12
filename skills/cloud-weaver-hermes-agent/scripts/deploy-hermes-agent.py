@@ -6,7 +6,7 @@ Pure Python 3 standard library; mirrors the deploy-hermes.py style.
 
 Key differences from deploy-hermes.py:
 - No public port for the application (Telegram long polling only).
-- Traefik handles TLS via Let's Encrypt on the VM's publiccloud.com.br hostname.
+- Traefik handles TLS via Let's Encrypt on the VM's <public_ip>.nip.io hostname.
 - Basic auth password is generated and shown only in the JSON report — never
   in command output (which the agent turns into user-visible text).
 - ~/.hermes/config.yaml is written via SCP before the first compose up.
@@ -40,7 +40,7 @@ def parse_args(argv):
     p.add_argument("--public-ip", required=True,
                    help="Public IP of the provisioned VM")
     p.add_argument("--hostname", required=True,
-                   help="Full public hostname for TLS, e.g. cr-hermes-net-vm.publiccloud.com.br")
+                   help="Full public hostname for TLS, e.g. 187.45.201.251.nip.io")
     p.add_argument("--telegram-user-id", required=True, type=int,
                    help="Telegram user ID for TELEGRAM_ALLOWED_USERS")
     p.add_argument("--ssh-user", default=DEFAULT_SSH_USER)
@@ -77,6 +77,13 @@ def validate(cfg):
         raise OSError("SSH private key not found: {}".format(key))
     if cfg["skip_secrets"] and cfg.get("admin_pass"):
         raise ValueError("--skip-secrets cannot be combined with --admin-pass")
+    # Bot token is a secret — must come from the environment, never the CLI.
+    if not cfg.get("skip_secrets"):
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        if not bot_token or bot_token.startswith("REPLACE_"):
+            raise ValueError(
+                "TELEGRAM_BOT_TOKEN is not set. "
+                "Export it in your terminal before running the deployer.")
 
 
 class Runner:
@@ -128,9 +135,8 @@ def build_secrets(cfg):
     admin_pass = cfg.get("admin_pass") or gen_secret(32)
     ttyd_basic_auth = make_basic_auth("admin", admin_pass)
     env_map = {
-        # Bot token is filled in by the participant via `hermes setup` in the
-        # web terminal. The placeholder signals clearly what needs replacing.
-        "TELEGRAM_BOT_TOKEN": "REPLACE_WITH_YOUR_BOT_TOKEN",
+        # Bot token comes from the environment — never from CLI args or chat.
+        "TELEGRAM_BOT_TOKEN": os.environ["TELEGRAM_BOT_TOKEN"],
         "TELEGRAM_ALLOWED_USERS": str(cfg["telegram_user_id"]),
         "ENV_NAME": cfg["env_name"],
         "HOSTNAME": cfg["hostname"],
@@ -220,7 +226,7 @@ def build_report(cfg, admin_pass):
         "compose_path": "/data/{}/compose".format(cfg["env_name"]),
         "note": (
             "Run `hermes setup` in the web terminal to configure the "
-            "LLM provider, GitHub and the Telegram bot token."
+            "LLM provider and GitHub. The Telegram bot is already configured."
         ),
     }
 

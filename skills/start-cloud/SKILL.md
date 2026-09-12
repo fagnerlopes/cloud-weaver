@@ -45,6 +45,7 @@ instructions. Handle the flags it prints:
 | `NEEDS_COMPUTER_SETUP` | Invoke `cloud-weaver-computer-setup`, then re-run the check |
 | `NEEDS_GITHUB_AUTH` | Ask the user to run `gh auth login` in their OS terminal, then resume |
 | `NEEDS_LOCAWEB_CREDENTIALS` | Ask the user to export `LOCAWEB_API_KEY` and `LOCAWEB_API_SECRET` in their OS terminal and start a new session. **Never accept the values in the conversation.** |
+| `NEEDS_TELEGRAM_BOT_TOKEN` | Ask the user to export `TELEGRAM_BOT_TOKEN` in their OS terminal and start a new session. **Never accept the value in the conversation.** |
 | `PREFLIGHT_FAILED` | Explain each reason in plain language, give the remediation, and **stop** |
 | No flags | The environment is ready — continue |
 
@@ -106,10 +107,13 @@ Before touching the Locaweb Cloud, show a short summary of everything that will
 be created:
 
 - the VM (name and plan)
-- the isolated network, the public IP and the static NAT
+- the isolated network, a public IP (assigned during provisioning) and the static NAT
 - the firewall rules and open ports
 - the `/data` disk
 - the application(s) that will be installed
+
+**Do not show or fabricate the access URL here** — the public IP is only known
+after provisioning (Step 5). The URL will be presented in the final report (Step 7).
 
 State plainly that this creates billable resources on their Locaweb Cloud
 account. Ask for an explicit **yes** and wait for it.

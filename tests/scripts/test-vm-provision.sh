@@ -63,13 +63,11 @@ expect "rejects tiny disk"             test "$(prov_rc v4)" != 0
 expect "disk range message"            file_contains "$BASE/v4.out" "between 5 and 2000"
 
 echo "== vm-provision: missing credentials / endpoint =="
-LOCAWEB_API_ENDPOINT=https://cloud.example/api prov_no_mock v5 --env-name hermes --zone ZP01 --plan c4 --ssh-pubkey "$BASE/testkey.pub"
+( unset LOCAWEB_API_KEY LOCAWEB_API_SECRET && \
+  LOCAWEB_API_ENDPOINT=https://cloud.example/api prov_no_mock v5 \
+    --env-name hermes --zone ZP01 --plan c4 --ssh-pubkey "$BASE/testkey.pub" )
 expect "rejects missing api keys"      test "$(prov_rc v5)" != 0
 expect "FATAL missing api keys"        file_contains "$BASE/v5.out" "LOCAWEB_API_KEY and LOCAWEB_API_SECRET must be set"
-
-LOCAWEB_API_KEY=k LOCAWEB_API_SECRET=s prov_no_mock v6 --env-name hermes --zone ZP01 --plan c4 --ssh-pubkey "$BASE/testkey.pub"
-expect "rejects missing endpoint"      test "$(prov_rc v6)" != 0
-expect "FATAL missing endpoint"        file_contains "$BASE/v6.out" "No API endpoint"
 
 echo "== vm-provision: requested signing is deterministic and secret-bound =="
 SIGLOAD="import sys, importlib.util; spec = importlib.util.spec_from_file_location('vmp', '$SCRIPT'); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)"
@@ -87,11 +85,11 @@ prov vm-empty vm-provision-empty.json --env-name hermes --zone ZP01 --plan c4 --
 expect "exit 0"                        test "$(prov_rc vm-empty)" = 0
 expect "report file written"           test -f "$BASE/report.json"
 expect "public_ip in report"           test "$(jq -r .public_ip "$BASE/report.json")" = "200.1.2.3"
-expect "hero_url nip.io"               test "$(jq -r .hero_url "$BASE/report.json")" = "http://200.1.2.3.nip.io"
+expect "hero_url nip.io https"         test "$(jq -r .hero_url "$BASE/report.json")" = "https://200.1.2.3.nip.io"
 expect "internal_ip in report"         test "$(jq -r .internal_ip "$BASE/report.json")" = "10.0.0.5"
 expect "firewall includes 22+8080"     bash -c "jq -r '.firewall_ports[]' '$BASE/report.json' | grep -qx '22' && jq -r '.firewall_ports[]' '$BASE/report.json' | grep -qx '8080'"
 for cmd in createNetwork registerSSHKeyPair deployVirtualMachine \
-           associateIpAddress enableStaticNat createFirewallRule \
+           createPortForwardingRule \
            createVolume createTags attachVolume; do
   expect "ran $cmd"                     file_contains "$BASE/vm-empty.log" "$cmd"
 done
@@ -103,7 +101,7 @@ prov vm-existing vm-provision-existing.json --env-name hermes --zone ZP01 --plan
 expect "exit 0"                        test "$(prov_rc vm-existing)" = 0
 expect "same public_ip reused"         test "$(jq -r .public_ip "$BASE/report2.json")" = "200.1.2.3"
 for cmd in createNetwork registerSSHKeyPair deployVirtualMachine \
-           associateIpAddress enableStaticNat createFirewallRule \
+           createPortForwardingRule \
            createVolume createTags attachVolume; do
   refute "did NOT re-create $cmd"      file_contains "$BASE/vm-existing.log" "$cmd"
 done

@@ -9,7 +9,7 @@
 #   TELEGRAM_BOT_TOKEN     - set by participant via `hermes setup` in terminal
 #   TELEGRAM_ALLOWED_USERS - participant's Telegram user ID (integer)
 #   ENV_NAME               - environment name ([a-z0-9_]), e.g. "hermes"
-#   HOSTNAME               - full public hostname, e.g. cr-hermes-net-vm.publiccloud.com.br
+#   HOSTNAME               - full public hostname, e.g. 187.45.201.251.nip.io
 #   TTYD_BASIC_AUTH        - htpasswd entry: admin:{SHA}<base64-sha1-of-password>
 #
 # Data paths on the VM host (persistent disk mounted at /data/<env>/):

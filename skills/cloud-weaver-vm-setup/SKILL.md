@@ -16,15 +16,21 @@ Docker over SSH).
 
 ## 1. Gather deployment parameters
 
-Collect one question at a time, explain defaults in plain language:
+**Valores fixos — nunca perguntar ao usuário:**
 
-| Parameter | Default | Notes |
-|-----------|---------|-------|
-| `env_name` | — | Regex `[a-z0-9_]` only. Prefer a short name (e.g. `hermes`, `prod`). The network is named `cr-<env>`. |
-| `zone` | `ZP01` | Use `ZP02` for geographic redundancy. |
-| `plan` | recipe-dependent | VM service offering (e.g. `c4`, `c8`) — confirm a plan that meets the recipe's minimum (see recipe skill). |
-| `disk_gb` | `20` | Data disk size in GB; mounted at `/data`. |
-| `app_ports` | recipe-dependent | TCP ports to open besides SSH 22. |
+| Parameter | Fixed value |
+|-----------|-------------|
+| `zone` | `ZP01` |
+| `plan` | `large` |
+| `disk_gb` | `20` |
+
+**Único parâmetro a coletar:**
+
+| Parameter | Notes |
+|-----------|-------|
+| `env_name` | Regex `[a-z0-9_]` only. Prefer a short name (e.g. `hermes`, `prod`). The network is named `cr-<env>`. |
+
+`app_ports` comes from the recipe skill — never ask the user.
 
 Validate `env_name` with `[[ $env_name =~ ^[a-z0-9_]+$ ]]`. Reject anything else.
 
@@ -33,7 +39,7 @@ Validate `env_name` with `[[ $env_name =~ ^[a-z0-9_]+$ ]]`. Reject anything else
 Show a short summary before provisioning, exactly like the playbook's plan
 step, and wait for explicit confirmation:
 
-> Vou criar: VM `<plan>` em `<zone>`, disco `<disk_gb>GB` (montado em /data),
+> Vou criar: VM `large` em `ZP01`, disco `20GB` (montado em /data),
 > firewall SSH (22) + portas `<app_ports>`, URL de acesso via nip.io.
 
 ## 3. SSH key
@@ -56,14 +62,14 @@ the pre-flight check):
 ```bash
 LOCAWEB_API_KEY="$LOCAWEB_API_KEY" LOCAWEB_API_SECRET="$LOCAWEB_API_SECRET" \
 python3 <this-skill-dir>/scripts/vm-provision.py \
-  --env-name "$env_name" --zone "$zone" --plan "$plan" \
-  --disk-gb "$disk_gb" --ports "$app_ports" \
+  --env-name "$env_name" --zone ZP01 --plan large \
+  --disk-gb 20 --ports "$app_ports" \
   --ssh-pubkey "$HOME/.ssh/cloud-weaver.pub"
 ```
 
-The endpoint comes from `LOCAWEB_API_ENDPOINT` (or `--endpoint`). Ask the user
-for the correct CloudStack endpoint URL once and store it in
-`LOCAWEB_API_ENDPOINT`.
+O endpoint é sempre `https://painel-cloud.locaweb.com.br/client/api` —
+já embutido como padrão no script. `LOCAWEB_API_ENDPOINT` ou `--endpoint`
+sobrepõem quando necessário, mas **não peça ao usuário**.
 
 The script prints a JSON report with `network_name`, `vm_id`, `public_ip`,
 `internal_ip`, `firewall_ports` and `hero_url`.
@@ -89,7 +95,7 @@ Pass to the recipe skill / monitor:
 - `public_ip` (public address)
 - `internal_ip`
 - `env_name`, `network_name`, `keypair_name`
-- `hero_url` (`http://<ip>.nip.io`)
+- `hero_url` (`https://<ip>.nip.io`)
 
 ## Idempotency
 

@@ -1,6 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 0. Version check — auto-update if the remote is newer than the loaded skills.
+#    Runs before everything else so the rest of the check uses updated code.
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOCAL_VERSION=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' "$SKILL_DIR/SKILL.md" \
+  | head -1 || echo "")
+
+if [[ -n "$LOCAL_VERSION" ]]; then
+  REMOTE_VERSION=$(curl -fsSL --max-time 8 \
+    "https://api.github.com/repos/fagnerlopes/cloud-weaver/contents/.claude-plugin/plugin.json" \
+    2>/dev/null \
+    | python3 -c "
+import sys, json, base64
+try:
+    data = json.load(sys.stdin)
+    content = base64.b64decode(data.get('content','')).decode()
+    print(json.loads(content).get('version',''))
+except Exception:
+    pass
+" 2>/dev/null || echo "")
+
+  if [[ -n "$REMOTE_VERSION" && "$REMOTE_VERSION" != "$LOCAL_VERSION" ]]; then
+    # Compare as tuples to handle 0.9.x > 0.8.x correctly.
+    IS_NEWER=$(python3 -c "
+import sys
+l = tuple(int(x) for x in '${LOCAL_VERSION}'.split('.'))
+r = tuple(int(x) for x in '${REMOTE_VERSION}'.split('.'))
+print('yes' if r > l else 'no')
+" 2>/dev/null || echo "no")
+
+    if [[ "$IS_NEWER" == "yes" ]]; then
+      echo "SKILLS_UPDATING: versão local=$LOCAL_VERSION → remota=$REMOTE_VERSION"
+      if command -v mise &>/dev/null; then NPX="mise x node@22 -- npx"
+      else NPX="npx"; fi
+
+      # Run update; capture exit code without triggering set -e.
+      _update_exit=0
+      $NPX -y skills update || _update_exit=$?
+
+      if [[ $_update_exit -eq 0 ]]; then
+        echo "SKILLS_UPDATED: skills atualizadas para $REMOTE_VERSION — inicie uma nova sessão para usar a versão atualizada."
+      else
+        echo "SKILLS_UPDATE_FAILED: não foi possível atualizar automaticamente. Execute: npx -y skills update"
+      fi
+    fi
+  fi
+fi
+
 errors=()
 
 # 1. Sensitive file guard — only when inside a git repo, before any sync.
@@ -124,6 +171,11 @@ fi
 #    stores and are never printed.
 if [[ -z "${LOCAWEB_API_KEY:-}" || -z "${LOCAWEB_API_SECRET:-}" ]]; then
   echo "NEEDS_LOCAWEB_CREDENTIALS: LOCAWEB_API_KEY and LOCAWEB_API_SECRET are not both set in the environment."
+fi
+
+# 6. Telegram Bot Token — presence check only; value is never printed.
+if [[ -z "${TELEGRAM_BOT_TOKEN:-}" ]]; then
+  echo "NEEDS_TELEGRAM_BOT_TOKEN: TELEGRAM_BOT_TOKEN is not set in the environment."
 fi
 
 echo "PREFLIGHT_PASSED"

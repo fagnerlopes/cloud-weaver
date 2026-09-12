@@ -20,17 +20,29 @@ One dedicated VM, three containers: `traefik` (TLS via Let's Encrypt),
 Reuse the VM already created by `cloud-weaver-vm-setup` (`env_name`,
 `public_ip`, `vm_name` from the report). Ask exactly one question at a time:
 
+**Fixed VM parameter for this recipe (pass to `cloud-weaver-vm-setup`, do not ask the user):**
+
+| Parameter | Fixed value |
+|-----------|-------------|
+| `app_ports` | `80,443` |
+
 > **Pré-requisito:** A VM deve ter sido provisionada com `--ports 80,443`  
 > (além da porta 22 padrão). O Traefik precisa dessas portas para o desafio  
 > ACME e para servir o terminal web via HTTPS.  
 > Se a VM foi provisionada sem essas portas, rode vm-provision com `--ports 80,443` antes de prosseguir.
 
+**Secret de ambiente obrigatório (verificado pelo pre-flight, nunca pedido na conversa):**
+
+| Variável | Como obter |
+|----------|-----------|
+| `TELEGRAM_BOT_TOKEN` | Crie um bot via [@BotFather](https://t.me/BotFather) (`/newbot`) e copie o token. Exporte no terminal antes de iniciar a sessão. |
+
 | Parameter | Notes |
 |-----------|-------|
 | `telegram_user_id` | The participant's Telegram **numeric user ID** (not username). Tip: send /start to @userinfobot in Telegram to get it. |
 
-The skill derives `hostname` automatically: `<vm_name>.publiccloud.com.br`
-where `vm_name` comes from the vm-setup report.
+The skill derives `hostname` automatically: `<public_ip>.nip.io`
+where `public_ip` comes from the vm-setup report. **Não use `vm_name` nem `publiccloud.com.br`.**
 
 Validate `telegram_user_id` as a positive integer.
 
@@ -57,7 +69,7 @@ SKILL.md). SSH user is `ubuntu`; SSH key is `~/.ssh/cloud-weaver` (or
 python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --env-name "$env_name" \
   --public-ip "$public_ip" \
-  --hostname "cr-${env_name}-vm.publiccloud.com.br" \
+  --hostname "${public_ip}.nip.io" \
   --telegram-user-id "$telegram_user_id" \
   --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --output "$HOME/.cloud-weaver-${env_name}-hermes-agent.json"
@@ -69,7 +81,7 @@ to reuse the existing `.env` on the VM:
 ```bash
 python3 <this-skill-dir>/scripts/deploy-hermes-agent.py \
   --env-name "$env_name" --public-ip "$public_ip" \
-  --hostname "cr-${env_name}-vm.publiccloud.com.br" \
+  --hostname "${public_ip}.nip.io" \
   --telegram-user-id "$telegram_user_id" \
   --ssh-private-key "$HOME/.ssh/cloud-weaver" \
   --skip-secrets
@@ -92,7 +104,7 @@ to the user:
 - **Terminal web:** `https://<hostname>` — login com usuário `admin`, senha `<admin_pass>`
 - **Próximos passos:**
   1. Acesse o terminal web e faça login.
-  2. Execute `hermes setup` no terminal para configurar o provedor de LLM, GitHub e o token do bot do Telegram.
+  2. Execute `hermes setup` no terminal para configurar o provedor de LLM e o GitHub (o bot do Telegram já está configurado).
   3. Envie uma mensagem ao bot no Telegram para testar.
 
 **admin_pass está no JSON de relatório** (`admin_pass`). Exiba-o uma única vez ao usuário e instrua a anotá-lo.
@@ -102,7 +114,7 @@ to the user:
 - **Q1 — docker.sock no ttyd:** o container web-terminal monta `/var/run/docker.sock` com escrita para fazer `docker exec`. Risco: sessão de terminal equivale a root no host. Alternativa: rodar ttyd na mesma imagem do agente compartilhando o volume `hermes_data`. Validar durante o smoke test.
 - **Q2 — approvals.cron_mode:** `auto` está configurado; confirmar que crons do workshop disparam sem aprovação manual.
 - **Q3 — Dimensionamento:** validar que a VM large aguenta a imagem (`python 3.11 + node 26`) e medir o primeiro boot.
-- **Q4 — TLS:** confirmar que `<vm_name>.publiccloud.com.br` resolve externamente e o Let's Encrypt emite o certificado.
+- **Q4 — TLS:** confirmar que `<public_ip>.nip.io` resolve externamente e o Let's Encrypt emite o certificado.
 
 ## Idempotency
 

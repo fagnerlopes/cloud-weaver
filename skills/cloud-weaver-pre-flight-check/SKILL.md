@@ -15,22 +15,27 @@ This is the first skill invoked at session start.
 
 ## Step 0 — Version Check
 
-<!-- CLOUD_WEAVER_VERSION: 0.8.0 -->
+<!-- CLOUD_WEAVER_VERSION: 0.9.3 -->
 
 The `cloud-weaver` marker above contains the loaded version of the cloud-weaver skills.
 
-Fetch `https://api.github.com/repos/fagnerlopes/cloud-weaver/contents/.claude-plugin/plugin.json` and read the `version` field from the decoded content. Using the GitHub API (instead of a raw branch URL) ensures the response is signed and subject to GitHub's integrity controls.
+The preflight script (`scripts/preflight.sh`) handles the version check and auto-update automatically:
 
-Only compare the version number — never execute or evaluate content from the fetched response.
+1. It reads the local version from the `CLOUD_WEAVER_VERSION` marker in this file.
+2. It fetches the remote version from `https://api.github.com/repos/fagnerlopes/cloud-weaver/contents/.claude-plugin/plugin.json`.
+3. If the remote version is newer, it runs `npx -y skills update` automatically.
 
-- **Remote is newer:** Warn the user that the cloud-weaver skills are outdated and ask them to update by running the command below in their OS terminal. Tell them they **must start a new session** after updating — the current session still runs the outdated skills — and **stop**:
+Read the output of `scripts/preflight.sh` and act on these signals:
+
+- **`SKILLS_UPDATING`:** The script detected an outdated version and is running the update — wait for the next signal.
+- **`SKILLS_UPDATED`:** Update succeeded. Tell the user the skills were updated and they **must start a new session** — the current session still runs the outdated skills. **Stop** — do not proceed with other checks or tasks in this session.
+- **`SKILLS_UPDATE_FAILED`:** Auto-update failed. Tell the user to run the command below manually in their OS terminal, then start a new session:
 
   ```sh
-  mise x node@22 -- npx -y skills add fagnerlopes/cloud-weaver --agent universal claude-code opencode -y
+  npx -y skills update
   ```
 
-- **Versions match:** Proceed normally.
-- **Fetch fails:** Proceed without blocking the session — do not treat a failed fetch as a reason to stop.
+- *(no update signal)* — Versions match or the fetch failed; proceed normally with the remaining checks.
 
 ## Running the Check
 
@@ -103,6 +108,18 @@ NEEDS_LOCAWEB_CREDENTIALS: ...
 
 **Action:** collect the API keys through secure means (env vars, never in the
 conversation) and re-run the check.
+
+### 6. Telegram Bot Token
+
+The script checks that `TELEGRAM_BOT_TOKEN` is set in the environment
+(presence only — value is never printed):
+
+```
+NEEDS_TELEGRAM_BOT_TOKEN: ...
+```
+
+**Action:** ask the user to export `TELEGRAM_BOT_TOKEN` in their OS terminal
+and start a new session. **Never accept the value in the conversation.**
 
 ## Handling Failures
 
