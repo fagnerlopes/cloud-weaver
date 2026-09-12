@@ -53,13 +53,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Make package public
-        run: |
-          # Set the package visibility to public so participants can pull without auth.
-          gh api \
-            --method PATCH \
-            -H "Accept: application/vnd.github+json" \
-            "/user/packages/container/cw-${{ matrix.recipe.name }}" \
-            -f visibility=public || echo "Note: visibility change may require manual step in GHCR UI"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
