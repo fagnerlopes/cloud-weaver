@@ -62,6 +62,7 @@ is coming, never offered as a choice.
 | Recipe | ID | Description | Status |
 |--------|----|-------------|--------|
 | WAHA | `waha` | Agente de WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
+| Hermes Agent | `hermes_agent` | Agente Telegram + LLM (Nous Research) | ✅ disponível |
 | Coolify | `coolify` | PaaS self-hosted para publicar suas próprias apps | 🔜 em breve |
 | Jitsi Meet | `jitsi` | Servidor de videoconferência | 🔜 em breve |
 
