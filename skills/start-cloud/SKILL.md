@@ -179,21 +179,123 @@ No separate monitoring step needed in v2.
 
 ## Step 7 — Final report
 
+### 7.1 — Write the access card
+
+The generated credentials are not recoverable after this session, so write them
+to a file the user can keep and copy from, in the directory where they are
+running the agent.
+
+**Ignore the file before it exists.** The pattern must reach `.gitignore` first
+so the card is never, for a single moment, a trackable file — and so the
+`SENSITIVE_FILES_DETECTED` check in `cloud-weaver-pre-flight-check` (which scans
+`git ls-files --others --exclude-standard`) does not block the user's next
+session:
+
+```bash
+grep -qxF 'CREDENCIAIS-*.md' .gitignore 2>/dev/null || echo 'CREDENCIAIS-*.md' >> .gitignore
+```
+
+Then write the card. Pass the values through the environment and compose the
+file in Python — never interpolate a password into a command line, where it
+would land in the shell history:
+
+```bash
+REPORT_FILE="$HOME/.cloud-weaver-${REPO_NAME}-report.json"
+
+REPO_NAME="$REPO_NAME" RECIPE="$RECIPE" PUBLIC_IP="$PUBLIC_IP" \
+APP_URL="$APP_URL" REPO_URL="$REPO_URL" FULL_REPO="$FULL_REPO" \
+REPORT_FILE="$REPORT_FILE" python3 - <<'PY'
+import datetime, json, os
+
+env = os.environ
+creds = json.load(open(env["REPORT_FILE"]))
+name = env["REPO_NAME"]
+
+lines = [
+    f"# CloudWeaver — {name}",
+    "",
+    f"Receita: `{env['RECIPE']}`  ",
+    f"Gerado em: {datetime.datetime.now().astimezone().strftime('%d/%m/%Y %H:%M')}",
+    "",
+    "> Este arquivo contém senhas. Ele já está no `.gitignore` — não faça commit",
+    "> nem compartilhe. As senhas não podem ser recuperadas depois.",
+    "",
+    "## Acesso",
+    "",
+    f"- **URL:** {env['APP_URL']}",
+]
+
+if env["RECIPE"] == "hermes-agent":
+    lines += [
+        f"- **Usuário:** `{creds['ttyd_user']}`",
+        f"- **Senha:** `{creds['ttyd_password']}`",
+        "",
+        "A URL abre um terminal web protegido por esse usuário e senha. No primeiro",
+        "acesso ele abre o assistente de configuração do Hermes; depois disso, abre",
+        "o Hermes CLI.",
+    ]
+else:
+    lines += [
+        f"- **Senha do PostgreSQL:** `{creds['postgres_password']}`",
+        f"- **Chave da API do WAHA:** `{creds['waha_api_key']}`",
+    ]
+
+lines += [
+    "",
+    "## Repositório",
+    "",
+    f"- {env['REPO_URL']}",
+    "",
+    "## Acesso SSH",
+    "",
+    "```bash",
+    f"ssh -i ~/.ssh/cw-{name} root@{env['PUBLIC_IP']}",
+    "```",
+    "",
+    "## Próximos passos",
+    "",
+    "```bash",
+    "# Atualizar o deploy: dentro do repositório, um push no branch main",
+    "# dispara o pipeline",
+    "git push",
+    "",
+    "# Reprovisionar manualmente",
+    f"gh workflow run deploy.yml --repo {env['FULL_REPO']}",
+    "",
+    "# Ver os logs do pipeline",
+    f"gh run list --repo {env['FULL_REPO']}",
+    "```",
+    "",
+    "Para remover os recursos e parar a cobrança, diga \"quero fazer o teardown\"",
+    "em uma nova sessão.",
+    "",
+]
+
+path = f"CREDENCIAIS-{name}.md"
+with open(path, "w") as f:
+    f.write("\n".join(lines))
+os.chmod(path, 0o600)
+print(f"CRED_FILE={os.path.abspath(path)}")
+PY
+
+rm -f "$REPORT_FILE"
+```
+
+If the card cannot be written (read-only directory, for example), say so plainly
+and fall back to showing the credentials in the conversation — losing them is
+worse than printing them.
+
+### 7.2 — Present the report
+
 Present in PT-BR:
 
 - **URL de acesso:** `https://<public-ip>.nip.io` — destacar visivelmente
+- **Arquivo de credenciais:** o caminho impresso como `CRED_FILE=` em 7.1 —
+  destacar visivelmente e dizer que as senhas estão lá, prontas para copiar, e
+  que o arquivo já está no `.gitignore`
+- **Usuário do terminal web** (hermes-agent): `admin` — o usuário pode aparecer
+  na conversa; **a senha não**, ela fica apenas no arquivo
 - **Repositório GitHub:** link `https://github.com/<user>/<repo-name>`
-- **Credenciais geradas:** read from `~/.cloud-weaver-<repo-name>-report.json`,
-  show once, then delete the file:
-  ```bash
-  cat "$HOME/.cloud-weaver-${REPO_NAME}-report.json"
-  rm -f "$HOME/.cloud-weaver-${REPO_NAME}-report.json"
-  ```
-  - **hermes-agent:** the URL opens a web terminal protected by basic auth —
-    show `ttyd_user` / `ttyd_password` and tell the user to save them now, since
-    they are not recoverable afterwards. On first access the terminal opens the
-    Hermes setup wizard; after that it opens the Hermes CLI.
-  - **waha:** show `postgres_password` and `waha_api_key`.
 - **Próximos passos:**
   - Para atualizar o deploy: `git push` ao branch `main` do repositório ativa o pipeline
   - Para reprovisionar manualmente: `gh workflow run deploy.yml --repo <user>/<repo-name>`
@@ -215,6 +317,8 @@ Celebrate the milestone, then invite the user to start a new session.
 - Every message starts with `[CloudWeaver]`.
 - All output to the user in PT-BR; code comments in English.
 - One question at a time — never batch questions.
-- Secrets never appear in the conversation, logs or commits.
+- Secrets never appear in the conversation, logs or commits. The single exception
+  is the `CREDENCIAIS-<repo>.md` access card written in Step 7 — a local `0600`
+  file, listed in `.gitignore` before it is created.
 - Validate every repo name against `[a-zA-Z0-9_][a-zA-Z0-9._-]*` before it reaches a command line.
 - "Locaweb Cloud" everywhere — never "CloudStack".

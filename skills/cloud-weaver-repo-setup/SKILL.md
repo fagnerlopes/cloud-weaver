@@ -210,10 +210,12 @@ echo "PUBLIC_IP=$PUBLIC_IP"
 Return to start-cloud:
 - `PUBLIC_IP` — the VM's public IP address
 - `APP_URL` — `https://${PUBLIC_IP}.nip.io`
+- `FULL_REPO` — `${GITHUB_LOGIN}/${REPO_NAME}`
 - `REPO_URL` — `https://github.com/${FULL_REPO}`
 - `SSH_KEY` — path to the generated key (`~/.ssh/cw-${REPO_NAME}`)
-- `REPORT_FILE` — `~/.cloud-weaver-${REPO_NAME}-report.json` (generated credentials,
-  to be shown once and deleted by start-cloud Step 7)
+- `REPORT_FILE` — `~/.cloud-weaver-${REPO_NAME}-report.json` (generated credentials;
+  start-cloud Step 7 copies them into the `CREDENCIAIS-${REPO_NAME}.md` access card
+  and then deletes this file)
 
 ---
 
@@ -221,5 +223,9 @@ Return to start-cloud:
 
 - Secrets never appear in the conversation, log output, or commits.
 - Private key content is read into a variable only when needed to set the GitHub Secret — never echoed or logged.
-- The `~/.cloud-weaver-${REPO_NAME}-report.json` file is `0600` and is deleted after the final report is shown.
+- The `~/.cloud-weaver-${REPO_NAME}-report.json` file is `0600` and is deleted once
+  start-cloud Step 7 has written the access card from it.
+- The access card `CREDENCIAIS-${REPO_NAME}.md` is `0600` and is added to
+  `.gitignore` before it is created — it is the only file that holds generated
+  credentials in plain text, and it never reaches a commit.
 - SSH keys are `0600` (created by `ssh-keygen -N ""`).

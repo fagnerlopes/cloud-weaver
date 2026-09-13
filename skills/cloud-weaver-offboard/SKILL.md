@@ -127,7 +127,24 @@ if [ -f AGENTS.md ]; then
 fi
 ```
 
-*(No cenário de adoção — rodar na máquina de casa — o Passo 2b já criou novos pares; não remover as chaves novas.)*
+### Fichas de acesso (`CREDENCIAIS-<repo>.md`)
+
+Listar o que existe na pasta antes de apagar qualquer coisa:
+
+```bash
+ls CREDENCIAIS-*.md 2>/dev/null || echo "Nenhuma ficha de acesso encontrada"
+```
+
+**Não apagar sem confirmar.** A ficha guarda a senha do terminal web, que o
+offboard não rotaciona e que não pode ser recuperada depois. Avisar o
+participante em PT-BR: se a VM continua de pé e ele ainda não copiou essas
+senhas para um gerenciador de senhas, copie agora. Só depois do "sim":
+
+```bash
+rm -f CREDENCIAIS-*.md
+```
+
+*(No cenário de adoção — rodar na máquina de casa — o Passo 2b já criou novos pares; não remover as chaves novas, nem as fichas de acesso desta máquina.)*
 
 ---
 

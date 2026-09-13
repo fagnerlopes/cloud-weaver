@@ -104,9 +104,14 @@ rm -f "$HOME/.ssh/cw-${REPO_NAME}" "$HOME/.ssh/cw-${REPO_NAME}.pub"
 # Remove session and report files
 rm -f "$HOME/.cloud-weaver-"*"-${REPO_NAME}-"*.json
 rm -f "$HOME/.cloud-weaver-"*"-session.json"
+
+# Remove the access card — the VM it points to no longer exists,
+# and it still holds the generated credentials
+rm -f "CREDENCIAIS-${REPO_NAME}.md"
 ```
 
-Confirm to the user: "✅ Chaves e arquivos locais removidos."
+Confirm to the user: "✅ Chaves e arquivos locais removidos." Mention the access
+card by name so the user knows the credentials file is gone.
 
 ---
 
