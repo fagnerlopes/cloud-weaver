@@ -6,7 +6,9 @@ Um plugin de IA que transforma agentes de código em engenheiros de infraestrutu
 
 | Receita | Descrição | Status |
 |---------|-----------|--------|
-| [Hermes Agent](skills/cloud-weaver-hermes/) | Agente WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
+| Hermes Agent (Docker + terminal web) | Agente Telegram + LLM | ✅ disponível |
+| Hermes Agent (host direto) | Agente Telegram + LLM instalado no host (sem Docker) | ✅ disponível |
+| WAHA | Agente WhatsApp (WAHA) + PostgreSQL | ✅ disponível |
 | Coolify | PaaS self-hosted | 🔜 em breve |
 | Jitsi Meet | Servidor de videoconferência | 🔜 em breve |
 

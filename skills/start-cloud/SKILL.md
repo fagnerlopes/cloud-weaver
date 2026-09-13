@@ -63,15 +63,17 @@ ones so the user knows they are coming, but never offer them as a choice.
 Qual receita você quer instalar?
 
 1. WAHA — Agente de WhatsApp (WAHA) + PostgreSQL
-2. Hermes Agent — Agente Telegram + LLM (Nous Research)
+2. Hermes Agent — Agente Telegram + LLM (Docker + terminal web)
+3. Hermes Agent (host direto) — sem Docker, sem terminal web
 
 🔜 Em breve: Coolify, Jitsi Meet
 ```
 
 Ask which recipe they want. Rules:
 
-- Accept the number (1, 2) or the name (waha, hermes-agent). Map to the recipe
-  ID internally: `1` → `waha`, `2` → `hermes-agent`.
+- Accept the number (1, 2, 3) or the name (waha, hermes-agent, hermes-host).
+  Map to the recipe ID internally: `1` → `waha`, `2` → `hermes-agent`,
+  `3` → `hermes-host`.
 - If the user picks an unavailable recipe, say plainly it is not ready yet and
   offer the available ones.
 - More than one recipe may be selected. Handle them one at a time,
@@ -121,9 +123,10 @@ Ask **exactly one question per message**, validate before moving on.
    Default: ZP01.
 
 3. **Plano da VM** — micro / small (padrão) / medium / large.
-   Show brief info: small = 2 vCPU / 4 GB RAM.
+   Show brief info: small = 2 vCPU / 4 GB RAM. Para `hermes-host` o padrão é
+   **medium** (a instalação nativa é pesada: Python gerenciado + Node + Chromium).
 
-#### hermes-agent only
+#### hermes-agent and hermes-host only
 
 4. **ID do Telegram do usuário permitido** — número inteiro positivo (ex: 123456789).
    Explain: only this user can send commands to the bot. Validate > 0.
@@ -141,8 +144,11 @@ Show a summary:
 
 - **Repositório GitHub:** `<github-username>/<repo-name>` (privado)
 - **VM na Locaweb Cloud:** plano `<plan>`, zona `<zone>`, disco 20 GB
-- **Receita:** `<recipe>` — imagem pré-construída `ghcr.io/fagnerlopes/cw-<recipe>:latest`
-- **Pipeline:** GitHub Actions — infra (~4 min) + deploy Kamal (~1 min)
+- **Receita:** `<recipe>` — se `hermes-host`: "instalação direta na VM via
+  instalador oficial (sem Docker, sem Kamal, sem terminal web)"; senão: "imagem
+  pré-construída `ghcr.io/fagnerlopes/cw-<recipe>:latest`"
+- **Pipeline:** GitHub Actions — infra (~4 min) + deploy Kamal (~1 min); para
+  `hermes-host`: infra (~4 min) + instalador na VM (~10-15 min)
 - **Secrets que serão configurados:** liste apenas os NOMES, nunca valores
 
 State plainly that this creates billable resources on their Locaweb Cloud account.
@@ -159,7 +165,7 @@ completion. Pass the configuration collected in Step 3:
 - `REPO_NAME` — chosen repository name
 - `ZONE` — chosen zone
 - `WEB_PLAN` — chosen plan
-- `TELEGRAM_USER_ID` — Telegram user ID (hermes-agent only)
+- `TELEGRAM_USER_ID` — Telegram user ID (hermes-agent and hermes-host only)
 
 Display only STEP: progress bullets during execution:
 - ⏳ for in-progress steps
@@ -208,13 +214,15 @@ REPORT_FILE="$REPORT_FILE" python3 - <<'PY'
 import datetime, json, os
 
 env = os.environ
-creds = json.load(open(env["REPORT_FILE"]))
+report = env["REPORT_FILE"]
+creds = json.load(open(report)) if os.path.isfile(report) else {}
 name = env["REPO_NAME"]
+recipe = env["RECIPE"]
 
 lines = [
     f"# CloudWeaver — {name}",
     "",
-    f"Receita: `{env['RECIPE']}`  ",
+    f"Receita: `{recipe}`  ",
     f"Gerado em: {datetime.datetime.now().astimezone().strftime('%d/%m/%Y %H:%M')}",
     "",
     "> Este arquivo contém senhas. Ele já está no `.gitignore` — não faça commit",
@@ -222,10 +230,14 @@ lines = [
     "",
     "## Acesso",
     "",
-    f"- **URL:** {env['APP_URL']}",
 ]
 
-if env["RECIPE"] == "hermes-agent":
+if recipe == "hermes-agent" or recipe == "waha":
+    lines += [
+        f"- **URL:** {env['APP_URL']}",
+    ]
+
+if recipe == "hermes-agent":
     lines += [
         f"- **Usuário:** `{creds['ttyd_user']}`",
         f"- **Senha:** `{creds['ttyd_password']}`",
@@ -234,10 +246,16 @@ if env["RECIPE"] == "hermes-agent":
         "acesso ele abre o assistente de configuração do Hermes; depois disso, abre",
         "o Hermes CLI.",
     ]
-else:
+elif recipe == "waha":
     lines += [
         f"- **Senha do PostgreSQL:** `{creds['postgres_password']}`",
         f"- **Chave da API do WAHA:** `{creds['waha_api_key']}`",
+    ]
+else:  # hermes-host — no web service
+    lines += [
+        "- **Telegram:** o bot do Hermes está online desde o deploy (long polling).",
+        "  Envie uma mensagem direto ao bot — `TELEGRAM_ALLOWED_USERS` restringe o",
+        f"  acesso ao seu ID. IP público da VM: `{env['PUBLIC_IP']}`",
     ]
 
 lines += [
@@ -255,16 +273,32 @@ lines += [
     "## Próximos passos",
     "",
     "```bash",
-    "# Atualizar o deploy: dentro do repositório, um push no branch main",
-    "# dispara o pipeline",
-    "git push",
-    "",
-    "# Reprovisionar manualmente",
-    f"gh workflow run deploy.yml --repo {env['FULL_REPO']}",
-    "",
-    "# Ver os logs do pipeline",
-    f"gh run list --repo {env['FULL_REPO']}",
-    "```",
+]
+
+if recipe == "hermes-host":
+    lines += [
+        "# Configurar provedor de LLM e GitHub (primeira vez, via SSH)",
+        "hermes setup",
+        "",
+        "# Status e logs do agente",
+        "hermes gateway status",
+        "hermes status",
+        "hermes logs",
+    ]
+else:
+    lines += [
+        "# Atualizar o deploy: dentro do repositório, um push no branch main",
+        "# dispara o pipeline",
+        "git push",
+        "",
+        "# Reprovisionar manualmente",
+        f"gh workflow run deploy.yml --repo {env['FULL_REPO']}",
+        "",
+        "# Ver os logs do pipeline",
+        f"gh run list --repo {env['FULL_REPO']}",
+    ]
+
+lines += [
     "",
     "Para remover os recursos e parar a cobrança, diga \"quero fazer o teardown\"",
     "em uma nova sessão.",
@@ -289,12 +323,15 @@ worse than printing them.
 
 Present in PT-BR:
 
-- **URL de acesso:** `https://<public-ip>.nip.io` — destacar visivelmente
+- **Acesso:** destacar visivelmente —
+  - `hermes-agent` e `waha`: `https://<public-ip>.nip.io`
+  - `hermes-host`: **bot do Telegram já online** (long polling) — mandar
+    mensagem direta; apenas o ID configurado em `TELEGRAM_ALLOWED_USERS` é aceito
 - **Arquivo de credenciais:** o caminho impresso como `CRED_FILE=` em 7.1 —
   destacar visivelmente e dizer que as senhas estão lá, prontas para copiar, e
   que o arquivo já está no `.gitignore`
-- **Usuário do terminal web** (hermes-agent): `admin` — o usuário pode aparecer
-  na conversa; **a senha não**, ela fica apenas no arquivo
+- **Usuário do terminal web** (somente hermes-agent): `admin` — o usuário pode
+  aparecer na conversa; **a senha não**, ela fica apenas no arquivo
 - **Repositório GitHub:** link `https://github.com/<user>/<repo-name>`
 - **Próximos passos:**
   - Para atualizar o deploy: `git push` ao branch `main` do repositório ativa o pipeline

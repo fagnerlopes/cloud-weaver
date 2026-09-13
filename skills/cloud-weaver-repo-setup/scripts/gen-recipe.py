@@ -30,7 +30,7 @@ _SHARED_FILES = [
     "teardown.py",
 ]
 
-_KNOWN_RECIPES = {"hermes-agent", "waha"}
+_KNOWN_RECIPES = {"hermes-agent", "hermes-host", "waha"}
 
 # Template variable delimiter: @[VAR_NAME]
 _PLACEHOLDER_RE = re.compile(r"@\[([A-Z0-9_]+)\]")
@@ -53,7 +53,7 @@ def build_context(args: argparse.Namespace) -> dict:
         "WEB_PLAN": args.web_plan,
         "REPO_NAME": args.repo_name,
     }
-    if args.recipe == "hermes-agent":
+    if args.recipe in ("hermes-agent", "hermes-host"):
         if args.telegram_user_id is not None and args.telegram_user_id <= 0:
             print(
                 "ERROR: --telegram-user-id must be a positive integer, "
@@ -122,7 +122,7 @@ def parse_args(argv: list | None = None) -> argparse.Namespace:
     p.add_argument("--repo-name", required=True,
                    help="GitHub repository name (e.g. meu-hermes)")
     p.add_argument("--telegram-user-id", type=int, default=None,
-                   help="Telegram user ID (required for hermes-agent)")
+                   help="Telegram user ID (required for hermes-agent and hermes-host)")
     return p.parse_args(argv)
 
 
@@ -134,8 +134,8 @@ def main(argv: list | None = None) -> int:
               f"Known: {', '.join(sorted(_KNOWN_RECIPES))}", file=sys.stderr)
         return 1
 
-    if args.recipe == "hermes-agent" and not args.telegram_user_id:
-        print("ERROR: --telegram-user-id is required for the hermes-agent recipe", file=sys.stderr)
+    if args.recipe in ("hermes-agent", "hermes-host") and not args.telegram_user_id:
+        print(f"ERROR: --telegram-user-id is required for the {args.recipe} recipe", file=sys.stderr)
         return 1
 
     ctx = build_context(args)

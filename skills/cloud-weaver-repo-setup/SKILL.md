@@ -32,7 +32,7 @@ Check that infra credentials are present (presence only — never print values):
 [[ -z "${LOCAWEB_API_SECRET:-}" ]] && echo "MISSING: LOCAWEB_API_SECRET"
 ```
 
-For hermes-agent: also check `TELEGRAM_BOT_TOKEN`.
+For hermes-agent and hermes-host: also check `TELEGRAM_BOT_TOKEN`.
 
 If any credential is missing, stop and tell the user which env var to export
 in their OS terminal. **Never accept values in the conversation.**
@@ -76,15 +76,15 @@ python3 "$SKILL_DIR/scripts/gen-recipe.py" \
   --web-plan    "$WEB_PLAN" \
   --repo-name   "$REPO_NAME" \
   [--telegram-user-id "$TELEGRAM_USER_ID"]
-  # ^ include --telegram-user-id for hermes-agent only
+  # ^ include --telegram-user-id for hermes-agent and hermes-host
 ```
 
 Variables come from start-cloud Step 3:
-- `RECIPE` — `hermes-agent` or `waha`
+- `RECIPE` — `hermes-agent`, `hermes-host`, or `waha`
 - `REPO_NAME` — chosen repository name (e.g. `meu-hermes`)
 - `ZONE` — `ZP01` or `ZP02`
 - `WEB_PLAN` — `small`, `medium`, etc.
-- `TELEGRAM_USER_ID` — Telegram user ID (hermes-agent only)
+- `TELEGRAM_USER_ID` — Telegram user ID (hermes-agent and hermes-host only)
 
 If gen-recipe.py exits non-zero, show the error output and stop.
 
@@ -142,6 +142,12 @@ os.chmod('$REPORT_FILE', 0o600)
 "
 ```
 
+**hermes-host:**
+```bash
+gh secret set TELEGRAM_BOT_TOKEN --repo "$FULL_REPO" <<< "$TELEGRAM_BOT_TOKEN"
+```
+No `TTYD_PASSWORD`/`REPORT_FILE` for hermes-host — it generates no secrets.
+
 **waha:**
 ```bash
 # Generate and store strong secrets (never display values in chat)
@@ -189,7 +195,7 @@ gh run watch "$RUN_ID" --repo "$FULL_REPO" --exit-status
 Display status as each job changes:
 - ⏳ `infra` — provisionando VM na Locaweb Cloud...
 - ✅ `infra` — VM provisionada
-- ⏳ `deploy` — fazendo deploy com Kamal...
+- ⏳ `deploy` — hermes-host: instalando Hermes Agent no host (~10-15 min); demais receitas: fazendo deploy com Kamal...
 - ✅ `deploy` — deploy concluído
 
 On failure: run the following and show the full output to the user:
@@ -215,7 +221,8 @@ Return to start-cloud:
 - `SSH_KEY` — path to the generated key (`~/.ssh/cw-${REPO_NAME}`)
 - `REPORT_FILE` — `~/.cloud-weaver-${REPO_NAME}-report.json` (generated credentials;
   start-cloud Step 7 copies them into the `CREDENCIAIS-${REPO_NAME}.md` access card
-  and then deletes this file)
+  and then deletes this file; `hermes-host` generates no credentials, so no file
+  is produced)
 
 ---
 

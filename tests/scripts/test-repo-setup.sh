@@ -93,4 +93,43 @@ echo "== gen-recipe: idempotência =="
 expect "exit 0 re-run" test $? = 0
 expect "Dockerfile ainda lá" test -f "$BASE/ha/Dockerfile"
 
+echo "== gen-recipe: hermes-host — geração sem Docker/Kamal =="
+"$PYTHON" "$SCRIPT" \
+    --recipe hermes-host \
+    --output-dir "$BASE/hh" \
+    --zone ZP01 \
+    --web-plan medium \
+    --telegram-user-id 987654321 \
+    --repo-name meu-hermes-host \
+    >"$BASE/hh.out" 2>&1
+expect "exit 0 hermes-host" test $? = 0
+
+expect "deploy.yml hermes-host"       test -f "$BASE/hh/.github/workflows/deploy.yml"
+expect "teardown.yml hermes-host"     test -f "$BASE/hh/.github/workflows/teardown.yml"
+refute "sem Dockerfile hermes-host"   test -f "$BASE/hh/Dockerfile"
+refute "sem config/ hermes-host"      test -e "$BASE/hh/config"
+refute "sem .kamal/ hermes-host"      test -e "$BASE/hh/.kamal"
+
+expect "zona ZP01 hermes-host"        grep -q "ZP01" "$BASE/hh/.github/workflows/deploy.yml"
+expect "web-plan medium hermes-host"  grep -q "medium" "$BASE/hh/.github/workflows/deploy.yml"
+expect "telegram id no workflow"      grep -q "987654321" "$BASE/hh/.github/workflows/deploy.yml"
+expect "instalador oficial"           grep -q "https://hermes-agent.nousresearch.com/install.sh" "$BASE/hh/.github/workflows/deploy.yml"
+expect "flags do instalador"          grep -q -- "--skip-setup --non-interactive --skip-computer-use --no-skills" "$BASE/hh/.github/workflows/deploy.yml"
+refute "sem kamal no workflow"        bash -c "grep -qi 'kamal' '$BASE/hh/.github/workflows/deploy.yml'"
+refute "sem ghcr no workflow"         grep -q "ghcr.io" "$BASE/hh/.github/workflows/deploy.yml"
+
+expect "token via env var"            grep -qF '"$TELEGRAM_BOT_TOKEN"' "$BASE/hh/.github/workflows/deploy.yml"
+expect "token via scp 0600"           grep -q "cw-env-append" "$BASE/hh/.github/workflows/deploy.yml"
+expect "TELEGRAM_ALLOWED_USERS"       grep -q "TELEGRAM_ALLOWED_USERS" "$BASE/hh/.github/workflows/deploy.yml"
+
+expect "GHA locaweb secrets intactos" grep -q 'secrets.LOCAWEB_API_KEY' "$BASE/hh/.github/workflows/deploy.yml"
+expect "GHA ssh-agent intacto"        grep -q 'webfactory/ssh-agent' "$BASE/hh/.github/workflows/deploy.yml"
+refute "sem placeholders hermes-host" grep -q '@\[' "$BASE/hh/.github/workflows/deploy.yml"
+
+echo "== gen-recipe: hermes-host — telegram obrigatório =="
+"$PYTHON" "$SCRIPT" --recipe hermes-host --output-dir "$BASE/bad3" \
+    --zone ZP01 --web-plan small --repo-name x \
+    2>"$BASE/bad3.err" || true
+expect "rejeita hermes-host sem telegram" grep -q "telegram-user-id" "$BASE/bad3.err"
+
 summary "repo-setup"

@@ -120,4 +120,15 @@ d="$BASE/s8"; mkdir -p "$d"
 expect "PREFLIGHT_PASSED"             file_contains "$LOG/s8.log" "PREFLIGHT_PASSED"
 refute "no NEEDS_LOCAWEB flag"        file_contains "$LOG/s8.log" "NEEDS_LOCAWEB_CREDENTIALS"
 
+echo "== skills: catalogo e apoio hermes-host =="
+START="$REPO/../skills/start-cloud/SKILL.md"
+REPOSETUP="$REPO/../skills/cloud-weaver-repo-setup/SKILL.md"
+MONITOR="$REPO/../skills/cloud-weaver-monitor/SKILL.md"
+expect "catalogo hermes-host"        file_contains "$START" "Hermes Agent (host direto)"
+expect "mapa 3 -> hermes-host"       bash -c "grep -qF '3\` → \`hermes-host' '$START'"
+expect "pergunta telegram both"      file_contains "$START" "#### hermes-agent and hermes-host only"
+expect "repo-setup receitas"         file_contains "$REPOSETUP" '`hermes-agent`, `hermes-host`, or `waha`'
+expect "repo-setup token both"       file_contains "$REPOSETUP" "hermes-agent and hermes-host: also check"
+expect "monitor hermes-host"         file_contains "$MONITOR" "hermes-host"
+
 summary "scripts (preflight)"
