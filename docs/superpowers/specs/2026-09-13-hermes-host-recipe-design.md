@@ -1,10 +1,13 @@
 # Receita Hermes Agent (host direto) — design
 
 **Data:** 2026-09-13
-**Status:** aprovado para plano de implementação
+**Status:** aprovado para plano de implementação — **revisado em 2026-09-14**
+(pipeline passa a instalar Docker no host e configurar `terminal.backend: docker`
+para isolar as ações de terminal do agente em um container sandbox)
 **Motivação:** alternativa à receita Docker — instalar o Hermes Agent (Nous
-Research) direto no host da VM da Locaweb Cloud, sem Docker e sem terminal web,
-com o bot do Telegram já online após o deploy.
+Research) direto no host da VM da Locaweb Cloud, sem Kamal e sem terminal web,
+com o bot do Telegram já online após o deploy e o terminal do agente isolado em
+container Docker.
 
 ---
 
@@ -16,8 +19,12 @@ PostgreSQL), esta receita:
 
 - instala o Hermes Agent **direto no host** da VM, pelo instalador oficial
   `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash`;
-- **não usa Docker, Kamal, nem imagem em GHCR**;
+- **não usa Kamal, nem imagem em GHCR**;
 - **não expõe endpoint HTTP nem terminal web** — acesso é via Telegram e SSH;
+- **isola o terminal interno do agente em um container Docker** (backend
+  `terminal.backend: docker`), que executa todo `terminal`/`execute_code`/file
+  num sandbox com hardening (`--cap-drop ALL`, `no-new-privileges`,
+  `--pids-limit 256`), persistente entre sessões;
 - deixa o **bot online no fim do deploy** (gateway como serviço systemd).
 
 O fluxo é o mesmo modelo v2 das receitas atuais: conversa `start-cloud` →
@@ -61,16 +68,18 @@ do `scp` (arquivo temporário `0600`), nunca em linha de comando.
 |---------|---------|---------|
 | Posicionamento | 3ª receita `hermes-host`, mantidas as duas atuais | Duas receitas atendem contextos diferentes; não unificar |
 | Instalação | Instalador oficial via `curl | bash` | O mesmo caminho que os autores validam; sem imagem para manter |
-| Sem Docker/Kamal | Job `deploy` = SSH + instalador + systemd | Deploy host-native; nenhum artefato de container no repo gerado |
+| Sem Kamal/GHCR | Job `deploy` = SSH + instalador + systemd | Deploy host-native; nenhum artefato de container no repo gerado |
+| Terminal do agente | Docker instalado no host (repo oficial, não snap) + `hermes config set terminal.backend docker` | Ações de `terminal`/`execute_code`/file rodam num sandbox container persistente, isolado do host e com hardening; o snap quebraria os flags `--init`/`no-new-privileges` |
+| Limites do sandbox | `terminal.container_cpu 2`, `terminal.container_memory 4096` | Evita que o container disputar CPU/RAM com o gateway na VM medium (4 vCPU / 8 GB) |
 | Flags do instalador | `--skip-setup --non-interactive --skip-computer-use --no-skills` | Wizard/computer-use desligados no pipeline (sem TTY); **browser/Chromium mantido** |
-| Config em deploy | Pipeline grava `TELEGRAM_BOT_TOKEN` e `TELEGRAM_ALLOWED_USERS` no `.env` e inicia o gateway | Bot já online ao final; acesso restrito por allowlist |
+| Config em deploy | Pipeline grava `TELEGRAM_BOT_TOKEN` e `TELEGRAM_ALLOWED_USERS` no `.env`, configura o backend docker e inicia o gateway | Bot já online ao final; acesso restrito por allowlist; terminal isolado |
 | Token do bot | GitHub secret; transferido por stdin/`scp` `0600` | Nunca na conversa, no log ou no argv |
 | ID permitido | `TELEGRAM_USER_ID` coletado 1 pergunta por vez (igual `hermes-agent`) | `TELEGRAM_ALLOWED_USERS`; default da plataforma é *deny all* |
 | Provedor LLM/GitHub | Configurador pelo usuário via `hermes setup` no SSH, após o deploy | Segredo do usuário não passa pelo pipeline |
-| Plano da VM | `medium` (4 vCPU / 8 GB) por padrão | Instalação pesada (Python + Node + Chromium) |
-| Validação pós-deploy | Via SSH: `hermes --version`, token presente no `.env`, gateway ativo | Sem endpoint HTTP para o monitor |
+| Plano da VM | `medium` (4 vCPU / 8 GB) por padrão | Instalação pesada (Python + Node + Chromium) + sandbox Docker |
+| Validação pós-deploy | Via SSH: `docker info`, `hermes config get terminal.backend` = `docker`, `hermes --version`, token presente no `.env`, gateway ativo | Sem endpoint HTTP para o monitor |
 | Relatório final | Acesso SSH + guia; **sem URL web** | Não há serviço web nesta receita |
-| Versão | `plugin.json` 1.4.0 → 1.5.0 + `scripts/stamp-version.sh` | Mudança significativa de skill |
+| Versão | `plugin.json` 1.5.0 (base) — revisão da receita não altera a versão | Mudança de template/testes já implementada na receita existente |
 
 ## 4. Segurança
 
@@ -95,12 +104,15 @@ participante → Telegram (bot Hermes, long polling → api.telegram.org)
 VM Locaweb (ubuntu, plano medium, SSH root)
   ├── /usr/local/bin/hermes                    (instalador oficial)
   ├── /usr/local/lib/hermes-agent
-  └── /root/.hermes/.env                       (TELEGRAM_BOT_TOKEN, ALLOWED_USERS)
-       └── hermes gateway  (systemd service, iniciado pelo deploy)
+  ├── Docker Engine (repo oficial)             (backend do terminal)
+  ├── /root/.hermes/config.yaml                (terminal.backend: docker)
+  ├── /root/.hermes/.env                       (TELEGRAM_BOT_TOKEN, ALLOWED_USERS)
+  ├── sandbox container (hermes-agent=1)       (terminal/execute_code/files isolados)
+  └── hermes gateway  (systemd service, iniciado pelo deploy)
 ```
 
 Nenhuma porta HTTP aberta. O monitor HTTP das outras receitas não se aplica:
-a validação de saúde é feita **via SSH**.
+a validação de saúde é feita **via SSH** (inclui `docker info` e o backend docker).
 
 ## 6. Componentes
 
@@ -132,14 +144,28 @@ templates/hermes-host/
        'curl -fsSL https://hermes-agent.nousresearch.com/install.sh \
         | bash -s -- --skip-setup --non-interactive --skip-computer-use --no-skills'
      ```
+   - **Instalar Docker** (repo oficial do Docker, não snap — o snap quebra os
+     flags de hardening do backend):
+     ```
+     install -m 0755 -d /etc/apt/keyrings
+     curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+     chmod a+r /etc/apt/keyrings/docker.asc
+     echo "deb [...] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+       > /etc/apt/sources.list.d/docker.list
+     apt-get update -qq && apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+     ```
    - **Configurar e iniciar o bot** — o passo tem `env` com o secret
      (`TELEGRAM_BOT_TOKEN`, mascarado pelo GHA) e o ID público
      (`TELEGRAM_USER_ID` como `@` + participante). Grava as duas linhas num
      tempfile local `0600`, `scp` para `/tmp/cw-env-append` na VM, mescla no
-     `/root/.hermes/.env` (cria com `0600` se ausente), apaga o tempfile e roda
+     `/root/.hermes/.env` (cria com `0600` se ausente), apaga o tempfile, define
+     o backend docker (`hermes config set terminal.backend docker`, limites
+     `terminal.container_cpu 2` e `terminal.container_memory 4096`) e roda
      `hermes gateway install || true` + `hermes gateway start`.
    - **Validar**:
      ```
+     docker info >/dev/null
+     test "$(hermes config get terminal.backend)" = docker
      hermes --version
      grep -q "^TELEGRAM_BOT_TOKEN=[^$]" /root/.hermes/.env
      (systemctl is-active --quiet hermes-gateway || pgrep -f "gateway") && echo "gateway OK"
@@ -168,17 +194,18 @@ templates/hermes-host/
 ### 6.4 `skills/start-cloud/SKILL.md`
 
 - Step 2 — catálogo:
-  ```
-  1. WAHA — Agente de WhatsApp (WAHA) + PostgreSQL
-  2. Hermes Agent (Docker + terminal web)
-  3. Hermes Agent (host direto) — sem Docker, sem terminal web
-  ```
+```
+   1. WAHA — Agente de WhatsApp (WAHA) + PostgreSQL
+   2. Hermes Agent (Docker + terminal web)
+   3. Hermes Agent (host direto) — instalado no host, terminal do agente isolado em container Docker
+   ```
   `1 → waha`, `2 → hermes-agent`, `3 → hermes-host`.
 - Step 3 — perguntas: `hermes-host` pergunta o `telegram_user_id` (mesma
   pergunta do `hermes-agent`); **sem pergunta de app web**. Plano de VM padrão
   para `hermes-host` = `medium`.
 - Step 4 — resumo do plano: mostra "instalação direta na VM via instalador
-  oficial (estimativa 10–15 min)"; sem linha de imagem GHCR.
+  oficial; ações de terminal do agente isoladas em container Docker (sem terminal
+  web)"; sem linha de imagem GHCR.
 - Step 7 — relatório: sem URL web; card com **acesso SSH** + estado do bot
   (online) + guia (`hermes setup`, `hermes gateway`, `hermes logs`) +
   mensagem direta no Telegram.
@@ -188,8 +215,10 @@ templates/hermes-host/
 ### 6.5 `skills/cloud-weaver-monitor/SKILL.md`
 
 - `hermes-host` **não tem endpoint HTTP**: a tabela de health check ganha um
-  branch "SSH-only" — checagem `hermes --version` + gateway via SSH; o
-  `diagnose.sh` (que usa `docker ps`) não se aplica a esta receita.
+  branch "SSH-only" — checagem `docker info` + `hermes config get
+  terminal.backend` = `docker` + `hermes --version` + gateway via SSH. O
+  `diagnose.sh` (que usa `docker ps`) **se aplica** ao sandbox do Hermes; o
+  gateway é diagnosticado via systemd.
 
 ### 6.6 Catálogo de build e versão
 
@@ -218,15 +247,24 @@ subir para 30 se estourar.
 que não exige bibliotecas desktop ausentes na imagem base da Locaweb (o
 `--no-skills` não é o motivo — optamos por manter o browser).
 
+**Q5 — Primeira chamada ao sandbox.** A imagem `nikolaik/python-nodejs` do
+backend docker é baixada na primeira chamada de terminal do agente, não no
+deploy; confirmar no smoke que o pull acontece sem erro (egresso de rede OK) e
+que o container `hermes-agent=1` sobe com os limites configurados.
+
 ## 8. Testes
 
 - `tests/scripts/test-repo-setup.sh`: novo bloco para `hermes-host` —
   gera `deploy.yml` + `teardown.yml`; **não** gera `Dockerfile`,
   `config/`, `.kamal/`; substitui `@[ZONE]`, `@[WEB_PLAN]`, `@[TELEGRAM_USER_ID]`;
   sem placeholders residuais; **aceita rodar com `--telegram-user-id`** e
-  valida rejeição quando ausente (mesma regra do `hermes-agent`).
+  valida rejeição quando ausente (mesma regra do `hermes-agent`); o workflow
+  contém a instalação do Docker (repo oficial, sem snap/`docker.io`), o
+  `hermes config set terminal.backend docker` + limites, e `docker info` na
+  validação.
 - **Smoke test numa VM real** — único que cobre Q1 a Q4: provisionar, instalar,
-  verificar `hermes --version`, gateway ativo e `curl` do bot respondendo.
+  verificar `hermes --version`, gateway ativo, `docker info` e um comando de
+  terminal do bot respondendo de dentro do sandbox.
 
 ## 9. Fora de escopo
 

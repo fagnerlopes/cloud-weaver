@@ -126,6 +126,18 @@ expect "GHA locaweb secrets intactos" grep -q 'secrets.LOCAWEB_API_KEY' "$BASE/h
 expect "GHA ssh-agent intacto"        grep -q 'webfactory/ssh-agent' "$BASE/hh/.github/workflows/deploy.yml"
 refute "sem placeholders hermes-host" grep -q '@\[' "$BASE/hh/.github/workflows/deploy.yml"
 
+echo "== gen-recipe: hermes-host — terminal do agente isolado via Docker =="
+DEPLOY="$BASE/hh/.github/workflows/deploy.yml"
+expect "docker repo oficial"        grep -q "download.docker.com/linux/ubuntu" "$DEPLOY"
+expect "docker-ce instalado"        grep -q "docker-ce docker-ce-cli containerd.io" "$DEPLOY"
+refute "sem snap install"           grep -q "snap install docker" "$DEPLOY"
+refute "sem pacote docker.io"       grep -q "docker.io" "$DEPLOY"
+expect "backend docker configurado" grep -q "hermes config set terminal.backend docker" "$DEPLOY"
+expect "limite cpu no sandbox"      grep -q "terminal.container_cpu 2" "$DEPLOY"
+expect "limite mem no sandbox"      grep -q "terminal.container_memory 4096" "$DEPLOY"
+expect "docker info na validacao"   grep -q "docker info" "$DEPLOY"
+expect "verifica backend na validacao" grep -q "hermes config get terminal.backend" "$DEPLOY"
+
 echo "== gen-recipe: hermes-host — telegram obrigatório =="
 "$PYTHON" "$SCRIPT" --recipe hermes-host --output-dir "$BASE/bad3" \
     --zone ZP01 --web-plan small --repo-name x \

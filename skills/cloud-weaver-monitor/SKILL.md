@@ -64,15 +64,19 @@ Use `--output report.json` when the caller wants the attempt history.
 
 ### 2b. `hermes-host` — check via SSH (no HTTP endpoint)
 
-`hermes-host` does not expose a web service. Instead of the HTTP poller:
+`hermes-host` does not expose a web service. The agent runs on the host, but its
+terminal actions are isolated in a Docker sandbox container. Instead of the HTTP
+poller:
 
 ```bash
 ssh -i "$HOME/.ssh/cw-${REPO_NAME}" -o StrictHostKeyChecking=accept-new \
   root@"$PUBLIC_IP" \
-  "hermes --version && systemctl is-active hermes-gateway"
+  "docker info >/dev/null && test \"\$(hermes config get terminal.backend)\" = docker \
+   && hermes --version && systemctl is-active hermes-gateway"
 ```
 
-Exit 0 means installed and gateway active. On failure go to section 4.
+Exit 0 means Docker is running, the terminal backend is `docker` (isolated), the
+agent is installed and the gateway is active. On failure go to section 4.
 
 ---
 
@@ -94,11 +98,13 @@ bash <this-skill-dir>/scripts/diagnose.sh \
 This gathers: `docker ps`, `/data` disk usage, memory, the Docker daemon log
 and uptime. Read the output and reason out loud:
 
-For `hermes-host`, `diagnose.sh` (docker) does not apply — the recipe has no
-containers. Diagnose via systemd instead:
+For `hermes-host` the docker checks in `diagnose.sh` apply to the Hermes-managed
+sandbox container, but the gateway itself is a systemd service — diagnose both:
 ```bash
 ssh -i "$HOME/.ssh/cw-${REPO_NAME}" -o StrictHostKeyChecking=accept-new \
-  root@"$PUBLIC_IP" "journalctl -u hermes-gateway -n 50 --no-pager && hermes --version"
+  root@"$PUBLIC_IP" \
+  "systemctl status hermes-gateway --no-pager && journalctl -u hermes-gateway -n 50 --no-pager \
+   && hermes config get terminal.backend && docker ps --filter label=hermes-agent=1"
 ```
 
 - **Containers not running** → check Kamal service logs on the VM:

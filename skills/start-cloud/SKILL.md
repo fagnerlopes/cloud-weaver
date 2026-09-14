@@ -64,7 +64,7 @@ Qual receita você quer instalar?
 
 1. WAHA — Agente de WhatsApp (WAHA) + PostgreSQL
 2. Hermes Agent — Agente Telegram + LLM (Docker + terminal web)
-3. Hermes Agent (host direto) — sem Docker, sem terminal web
+3. Hermes Agent (host direto) — instalado no host, terminal do agente isolado em container Docker
 
 🔜 Em breve: Coolify, Jitsi Meet
 ```
@@ -124,7 +124,8 @@ Ask **exactly one question per message**, validate before moving on.
 
 3. **Plano da VM** — micro / small (padrão) / medium / large.
    Show brief info: small = 2 vCPU / 4 GB RAM. Para `hermes-host` o padrão é
-   **medium** (a instalação nativa é pesada: Python gerenciado + Node + Chromium).
+   **medium** (a instalação nativa é pesada: Python gerenciado + Node + Chromium,
+   mais o sandbox Docker do terminal).
 
 #### hermes-agent and hermes-host only
 
@@ -145,7 +146,8 @@ Show a summary:
 - **Repositório GitHub:** `<github-username>/<repo-name>` (privado)
 - **VM na Locaweb Cloud:** plano `<plan>`, zona `<zone>`, disco 20 GB
 - **Receita:** `<recipe>` — se `hermes-host`: "instalação direta na VM via
-  instalador oficial (sem Docker, sem Kamal, sem terminal web)"; senão: "imagem
+  instalador oficial; ações de terminal do agente isoladas em container Docker
+  (sem terminal web)"; senão: "imagem
   pré-construída `ghcr.io/fagnerlopes/cw-<recipe>:latest`"
 - **Pipeline:** GitHub Actions — infra (~4 min) + deploy Kamal (~1 min); para
   `hermes-host`: infra (~4 min) + instalador na VM (~10-15 min)
@@ -256,6 +258,8 @@ else:  # hermes-host — no web service
         "- **Telegram:** o bot do Hermes está online desde o deploy (long polling).",
         "  Envie uma mensagem direto ao bot — `TELEGRAM_ALLOWED_USERS` restringe o",
         f"  acesso ao seu ID. IP público da VM: `{env['PUBLIC_IP']}`",
+        "",
+        "O terminal do agente roda dentro de um sandbox Docker, isolado do host.",
     ]
 
 lines += [
