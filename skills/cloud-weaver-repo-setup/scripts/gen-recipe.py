@@ -25,9 +25,14 @@ _FILE_MAP = {
     "teardown.yml": ".github/workflows/teardown.yml",
 }
 
-# Shared files (same for all recipes) — read from templates/shared/
+# Shared files (same for all recipes) — read from templates/shared/.
+# They are rendered like recipe templates, so they may use @[VAR_NAME]
+# placeholders (files without placeholders render unchanged).
 _SHARED_FILES = [
     "teardown.py",
+    "README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
 ]
 
 _KNOWN_RECIPES = {"hermes-agent", "hermes-host", "waha"}
@@ -99,13 +104,28 @@ def generate(recipe: str, ctx: dict, output_dir: Path, template_root: Path) -> N
             )
             sys.exit(1)
 
-    # Copy shared files (verbatim, no substitution).
+    # Copy shared files (rendered like recipe templates; shared files rarely
+    # use placeholders, so this is usually a verbatim copy).
     shared_dir = template_root / "shared"
     for filename in _SHARED_FILES:
         src = shared_dir / filename
         if src.is_file():
+            rendered = render(src.read_text(encoding="utf-8"), ctx)
             dst = output_dir / filename
-            dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+            dst.write_text(rendered, encoding="utf-8")
+
+    # Verify no leftover placeholders in shared files either.
+    for filename in _SHARED_FILES:
+        dst = output_dir / filename
+        if not dst.is_file():
+            continue
+        leftovers = _PLACEHOLDER_RE.findall(dst.read_text(encoding="utf-8"))
+        if leftovers:
+            print(
+                f"ERROR: Unrendered placeholders in {dst}: {leftovers}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
 
 def parse_args(argv: list | None = None) -> argparse.Namespace:
