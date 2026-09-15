@@ -84,7 +84,7 @@ jobs:
              hermes config set terminal.container_cpu 2
              hermes config set terminal.container_memory 4096
              hermes gateway install || true
-             hermes gateway start'
+             hermes gateway restart'
 
       - name: Verify Hermes and the isolated terminal are up
         run: |
@@ -94,5 +94,5 @@ jobs:
              && hermes --version && test -s /root/.hermes/.env \
              && grep -q "^TELEGRAM_BOT_TOKEN=." /root/.hermes/.env \
              && ! grep -q "^TELEGRAM_BOT_TOKEN=your-" /root/.hermes/.env \
-             && (systemctl is-active --quiet hermes-gateway 2>/dev/null \
-                 || pgrep -f "gateway" >/dev/null)'
+             && (XDG_RUNTIME_DIR=/run/user/$(id -u) systemctl --user is-active --quiet hermes-gateway 2>/dev/null \
+                 || pgrep -f "hermes.*gateway" >/dev/null)'

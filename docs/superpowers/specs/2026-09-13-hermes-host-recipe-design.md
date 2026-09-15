@@ -231,9 +231,15 @@ templates/hermes-host/
 
 ## 7. Questões abertas — validar no smoke test (não bloqueiam o design)
 
-**Q1 — systemd unit.** Confirmar o nome do serviço criado por
-`hermes gateway install` (provável `hermes-gateway.service`). O check de
-validação já tem fallback `pgrep -f gateway`.
+**Q1 — systemd unit. RESOLVIDA (2026-09-15, VM real).** O serviço se chama
+`hermes-gateway.service`, como suposto, **mas vive no escopo de usuário**:
+`systemctl list-units` não o mostra, só `systemctl --user`. Além disso o
+`hermes gateway install` já **inicia** o serviço — o `hermes gateway start`
+seguinte é recusado pela CLI ("already running under systemd (user)…
+Restart the supervised gateway instead"). O template passou a usar
+`gateway restart` e a validar com `systemctl --user`, com `XDG_RUNTIME_DIR`
+explícito (por SSH não interativo a variável não está no ambiente e o
+`--user` falharia com "Failed to connect to bus").
 
 **Q2 — TTY no `hermes gateway install`.** Confirmar que o subcomando `gateway
 install` funciona sem `/dev/tty` (é CLI, não wizard). Documentar `script -qc`

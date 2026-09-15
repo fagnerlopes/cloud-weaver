@@ -72,7 +72,9 @@ poller:
 ssh -i "$HOME/.ssh/cw-${REPO_NAME}" -o StrictHostKeyChecking=accept-new \
   root@"$PUBLIC_IP" \
   "docker info >/dev/null && test \"\$(hermes config get terminal.backend)\" = docker \
-   && hermes --version && systemctl is-active hermes-gateway"
+   && hermes --version \
+   && (XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user is-active --quiet hermes-gateway \
+       || pgrep -f 'hermes.*gateway' >/dev/null)"
 ```
 
 Exit 0 means Docker is running, the terminal backend is `docker` (isolated), the
@@ -103,7 +105,8 @@ sandbox container, but the gateway itself is a systemd service — diagnose both
 ```bash
 ssh -i "$HOME/.ssh/cw-${REPO_NAME}" -o StrictHostKeyChecking=accept-new \
   root@"$PUBLIC_IP" \
-  "systemctl status hermes-gateway --no-pager && journalctl -u hermes-gateway -n 50 --no-pager \
+  "XDG_RUNTIME_DIR=/run/user/\$(id -u) systemctl --user status hermes-gateway --no-pager; \
+   XDG_RUNTIME_DIR=/run/user/\$(id -u) journalctl --user -u hermes-gateway -n 50 --no-pager \
    && hermes config get terminal.backend && docker ps --filter label=hermes-agent=1"
 ```
 

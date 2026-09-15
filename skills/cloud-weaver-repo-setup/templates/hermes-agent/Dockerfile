@@ -6,4 +6,4 @@
 # The tag is pinned to a CloudWeaver release rather than :latest, so what you
 # deploy is the image this release was tested against. scripts/stamp-version.sh
 # writes it from plugin.json; do not edit it by hand.
-FROM ghcr.io/fagnerlopes/cw-hermes-agent:1.6.0
+FROM ghcr.io/fagnerlopes/cw-hermes-agent:1.6.1
